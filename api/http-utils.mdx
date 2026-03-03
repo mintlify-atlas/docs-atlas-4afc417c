@@ -1,0 +1,94 @@
+---
+title: HTTP Utilities
+description: HTTPRetryConfig and Route classes for HTTP configuration
+---
+
+## HTTPRetryConfig
+
+Configuration for how HTTPClient should handle retries.
+
+<Warning>
+  Messing with these values could potentially make retries spammy. Worst case scenario of this would be that either your IP or your account could be limited due to high traffic. Change these values with caution!
+</Warning>
+
+### Parameters
+
+<ParamField path="max_retry_attempts" type="int" default="5">
+  The max amount of retry attempts for a request.
+  
+  <Note>
+    This is ignored when handling capacity throttling.
+  </Note>
+</ParamField>
+
+<ParamField path="max_wait_time" type="Optional[float]" default="65">
+  The max amount of seconds to wait for a request before raising the original exception. This works by keeping track of the total seconds that has been waited for the request regardless of number of attempts. If `None` this is ignored.
+</ParamField>
+
+<ParamField path="handle_rate_limits" type="bool" default="True">
+  Whether or not the client should handle rate limit errors and wait the received `Retry-After` before automatically retrying the request.
+  
+  <Note>
+    This option is only for throttling errors with a Retry-After value.
+  </Note>
+</ParamField>
+
+<ParamField path="max_retry_after" type="float" default="60">
+  The max amount of seconds the client should handle. If a throttled error with a higher Retry-After than this value is received, then the original HTTPException is raised instead.
+  
+  Only matters when `handle_rate_limits` is `True`.
+</ParamField>
+
+<ParamField path="other_requests_wait" type="bool" default="True">
+  Whether other requests to a rate limited endpoint should wait for the rate limit to disappear before requesting.
+  
+  Only matters when `handle_rate_limits` is `True`.
+</ParamField>
+
+<ParamField path="handle_capacity_throttling" type="bool" default="True">
+  Whether or not the client should automatically handle capacity throttling.
+</ParamField>
+
+### Example
+
+```python
+import rebootpy
+
+# Create custom retry configuration
+retry_config = rebootpy.HTTPRetryConfig(
+    max_retry_attempts=10,
+    max_wait_time=120,
+    handle_rate_limits=True,
+    max_retry_after=90
+)
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(),
+    http_retry_config=retry_config
+)
+```
+
+## Route
+
+Represents an HTTP route for making requests to Epic Games services.
+
+<Note>
+  This class is typically used internally by the library. Most users won't need to interact with it directly.
+</Note>
+
+### Example
+
+```python
+import rebootpy
+
+# Routes are used internally
+route = rebootpy.Route(
+    method='GET',
+    path='/account/api/public/account/{account_id}'
+)
+```
+
+## Related
+
+- [Client](/api/client) - Client accepts `http_retry_config` parameter
+- [Exceptions](/api/errors) - HTTPException can be raised during requests

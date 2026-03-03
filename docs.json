@@ -136,6 +136,13 @@
             ]
           },
           {
+            "group": "Utilities",
+            "pages": [
+              "api/avatar",
+              "api/http-utils"
+            ]
+          },
+          {
             "group": "Enums",
             "pages": [
               "api/enums"

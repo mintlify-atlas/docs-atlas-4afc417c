@@ -1,0 +1,44 @@
+---
+title: Avatar
+description: Avatar class for representing friend avatars
+---
+
+## Avatar
+
+Represents a friend's avatar. This is always related to the outfit the friend has equipped.
+
+### Attributes
+
+<ResponseField name="namespace" type="str">
+  The namespace of the avatar.
+</ResponseField>
+
+<ResponseField name="asset_type" type="Optional[str]">
+  The asset type. This is usually `ATHENACHARACTER`. If the friend has no avatar set, or has a default character set, then this will be `None`.
+</ResponseField>
+
+<ResponseField name="asset" type="Optional[str]">
+  The asset of the avatar. This is usually a CID in full caps. If the friend has no avatar set, or has a default character set, then this will be `None`.
+</ResponseField>
+
+### Example
+
+```python
+import rebootpy
+
+client = rebootpy.Client(auth=rebootpy.AdvancedAuth())
+
+@client.event
+async def event_friend_presence(presence):
+    if presence.friend:
+        avatar = await presence.friend.fetch_avatar()
+        if avatar.asset:
+            print(f'{presence.friend.display_name} has avatar: {avatar.asset}')
+        else:
+            print(f'{presence.friend.display_name} has default avatar')
+```
+
+## Related
+
+- [Friend](/api/friend) - Friend class has `fetch_avatar()` method
+- [User](/api/user) - User class has `fetch_avatar()` method
