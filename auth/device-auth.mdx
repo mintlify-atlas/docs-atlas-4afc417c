@@ -1,0 +1,268 @@
+---
+title: DeviceAuth
+description: Authenticate with device auth credentials (Recommended)
+---
+
+`DeviceAuth` is the recommended authentication method for production bots. It uses persistent credentials that don't require manual intervention for each login.
+
+## Why DeviceAuth?
+
+- No manual code copying required after initial setup
+- Credentials persist across sessions
+- More reliable than code-based authentication
+- Supports automatic reauthentication
+- Secure and can be invalidated by resetting your password
+
+## Basic Usage
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceAuth(
+        device_id='your_device_id_here',
+        account_id='your_account_id_here',
+        secret='your_secret_here'
+    )
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+
+bot.run()
+```
+
+## Storing Credentials Securely
+
+### Using JSON File
+
+```python
+import rebootpy
+import json
+import os
+from rebootpy.ext import commands
+
+filename = 'device_auths.json'
+
+def get_device_auth_details():
+    if os.path.isfile(filename):
+        with open(filename, 'r') as fp:
+            return json.load(fp)
+    return {}
+
+device_auth_details = get_device_auth_details()
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceAuth(**device_auth_details)
+)
+
+bot.run()
+```
+
+### Using Environment Variables
+
+```python
+import rebootpy
+import os
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceAuth(
+        device_id=os.getenv('DEVICE_ID'),
+        account_id=os.getenv('ACCOUNT_ID'),
+        secret=os.getenv('DEVICE_SECRET')
+    )
+)
+
+bot.run()
+```
+
+## Getting Device Auth Credentials
+
+You can generate device auth credentials using other authentication methods:
+
+### Method 1: Using AdvancedAuth (Recommended)
+
+See [AdvancedAuth](/auth/advanced) for automatic device auth generation.
+
+### Method 2: Manual Generation
+
+```python
+import rebootpy
+import json
+from rebootpy.ext import commands
+
+# First, authenticate with another method
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your_authorization_code'
+    )
+)
+
+@bot.event
+async def event_ready():
+    # Generate device auth
+    device_auth = await bot.auth.generate_device_auth()
+    
+    details = {
+        'device_id': device_auth['deviceId'],
+        'account_id': device_auth['accountId'],
+        'secret': device_auth['secret']
+    }
+    
+    # Store securely
+    with open('device_auths.json', 'w') as fp:
+        json.dump(details, fp)
+    
+    print('Device auth generated and saved!')
+    print(f'Device ID: {details["device_id"]}')
+    print(f'Account ID: {details["account_id"]}')
+    print(f'Secret: {details["secret"]}')
+
+bot.run()
+```
+
+## Parameters
+
+<ParamField path="device_id" type="str" required>
+  A 32 character hex string representing your device. This is generated when you create device auth credentials.
+</ParamField>
+
+<ParamField path="account_id" type="str" required>
+  The Epic Games account ID. This identifies which account the device auth belongs to.
+</ParamField>
+
+<ParamField path="secret" type="str" required>
+  The device auth secret. This is a 32 character string that authenticates the device.
+</ParamField>
+
+<ParamField path="ios_token" type="str" default="auto">
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+<ParamField path="token_type" type="str" default="eg1">
+  The token type to use. It's recommended you only change this if you know what you're doing.
+</ParamField>
+
+## Attributes
+
+<ParamField path="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ParamField>
+
+<ParamField path="account_id" type="str">
+  The account ID of the authenticated user.
+</ParamField>
+
+<ParamField path="device_id" type="str">
+  The device ID used for authentication.
+</ParamField>
+
+## Managing Device Auths
+
+### Listing All Device Auths
+
+```python
+@bot.event
+async def event_ready():
+    device_auths = await bot.auth.fetch_device_auths()
+    for auth in device_auths:
+        print(f"Device: {auth['deviceId']}")
+        print(f"Created: {auth['created']['dateTime']}")
+        print(f"Last Access: {auth['lastAccess']['dateTime']}")
+```
+
+### Deleting a Device Auth
+
+```python
+@bot.event
+async def event_ready():
+    # Delete a specific device auth
+    await bot.auth.delete_device_auth('device_id_to_delete')
+    print('Device auth deleted')
+```
+
+## Security
+
+<Warning>
+  Keep your device auth credentials secure! Anyone with access to these credentials can authenticate as your account.
+</Warning>
+
+### Best Practices
+
+- Never commit credentials to version control
+- Use environment variables or encrypted storage
+- Rotate credentials periodically
+- Monitor active device auths regularly
+- Delete unused device auths
+
+### If Credentials Are Compromised
+
+When an account's password is reset, all device authentications associated with the account are removed. If your device ID and secret are compromised, resetting your password will invalidate all authentication data, making it useless to anyone who may have accessed the leaked data.
+
+```python
+# After resetting password, generate new device auth
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth()
+)
+
+@bot.event
+async def event_ready():
+    device_auth = await bot.auth.generate_device_auth()
+    # Store new credentials
+```
+
+## Automatic Reauthentication
+
+DeviceAuth supports automatic reauthentication if token refresh fails:
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceAuth(
+        device_id='...',
+        account_id='...',
+        secret='...'
+    )
+)
+
+@bot.event
+async def event_auth_refresh():
+    print('Authentication tokens refreshed')
+
+bot.run()
+```
+
+The library automatically:
+- Refreshes tokens before they expire
+- Reauthenticates if refresh fails
+- Maintains active session without manual intervention
+
+## Common Errors
+
+### Invalid Device Auth Details
+
+If you receive an `AuthException` with "Invalid device auth details passed", your credentials are:
+- Incorrect or corrupted
+- Invalidated by a password reset
+- Expired or revoked
+
+Generate new device auth credentials to resolve this.
+
+### Corrective Action Required
+
+If Epic Games requires corrective action (like setting date of birth), the library handles common cases automatically. For unsupported actions, you'll receive an error message.
+
+## Migration From Other Auth Methods
+
+If you're currently using another authentication method, see [AdvancedAuth](/auth/advanced) for the easiest migration path.

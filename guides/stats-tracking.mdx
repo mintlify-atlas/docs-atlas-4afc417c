@@ -1,0 +1,352 @@
+---
+title: Stats tracking
+description: Learn how to fetch and work with Fortnite stats and competitive ranks
+---
+
+Rebootpy provides comprehensive support for fetching Battle Royale stats, competitive ranks, and player information.
+
+## Fetching Battle Royale stats
+
+### Basic stats
+
+Fetch stats for any user:
+
+```python
+import rebootpy
+
+client = rebootpy.Client(auth=rebootpy.AdvancedAuth())
+
+@client.event
+async def event_ready():
+    # Fetch stats for the bot user
+    stats = await client.user.fetch_br_stats()
+    
+    # Get all stats as a dictionary
+    all_stats = stats.get_stats()
+    print(f'Total wins: {all_stats.get("wins", 0)}')
+    print(f'Total kills: {all_stats.get("kills", 0)}')
+    print(f'Total matches: {all_stats.get("matchesplayed", 0)}')
+```
+
+### Stats for specific users
+
+```python
+# Fetch stats for a friend
+friend = client.get_friend('FriendName')
+if friend:
+    stats = await friend.fetch_br_stats()
+    all_stats = stats.get_stats()
+    
+# Fetch stats by user ID
+user = await client.fetch_user('user_id_here')
+stats = await user.fetch_br_stats()
+```
+
+## Working with stats
+
+### Get specific stat values
+
+```python
+stats = await client.user.fetch_br_stats()
+all_stats = stats.get_stats()
+
+# Common stats:
+wins = all_stats.get('wins', 0)
+kills = all_stats.get('kills', 0)
+deaths = all_stats.get('deaths', 0)
+matches = all_stats.get('matchesplayed', 0)
+minutesplayed = all_stats.get('minutesplayed', 0)
+```
+
+### Calculate K/D and win percentage
+
+```python
+stats = await client.user.fetch_br_stats()
+
+# Get K/D ratio
+kd_ratio = stats.get_kd()
+print(f'K/D Ratio: {kd_ratio:.2f}')
+
+# Get win percentage
+win_percentage = stats.get_winpercentage()
+print(f'Win %: {win_percentage:.2f}%')
+```
+
+### Filter by playlist
+
+Get stats for specific game modes:
+
+```python
+# Get combined stats (all playlists)
+combined_stats = stats.get_combined_stats()
+
+# Access individual playlist stats from raw data
+raw_stats = stats.raw['stats']
+
+# Example: Solo stats
+if 'defaultsolo' in raw_stats:
+    solo_stats = raw_stats['defaultsolo']
+    solo_wins = solo_stats.get('wins', 0)
+    solo_kills = solo_stats.get('kills', 0)
+```
+
+## Competitive ranks
+
+Fetch ranked/competitive statistics:
+
+```python
+@client.event
+async def event_ready():
+    # Fetch ranked stats for Battle Royale
+    ranked_stats = await client.user.fetch_ranked_stats(
+        ranking_type=rebootpy.RankingType.BATTLE_ROYALE
+    )
+    
+    for rank in ranked_stats:
+        print(f'Rank: {rank.rank}')
+        print(f'Progress: {rank.progress}%')
+        print(f'Division: {rank.division}')
+        
+        if rank.unreal_placement:
+            print(f'Unreal Placement: {rank.unreal_placement}')
+```
+
+### Different ranking types
+
+```python
+# Battle Royale ranked
+br_ranked = await client.user.fetch_ranked_stats(
+    ranking_type=rebootpy.RankingType.BATTLE_ROYALE
+)
+
+# Zero Build ranked
+zb_ranked = await client.user.fetch_ranked_stats(
+    ranking_type=rebootpy.RankingType.ZERO_BUILD
+)
+
+# Rocket Racing
+rr_ranked = await client.user.fetch_ranked_stats(
+    ranking_type=rebootpy.RankingType.ROCKET_RACING
+)
+
+# Reload
+reload_ranked = await client.user.fetch_ranked_stats(
+    ranking_type=rebootpy.RankingType.RELOAD
+)
+```
+
+## Stats in commands
+
+Create commands to display stats:
+
+```python
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AdvancedAuth()
+)
+
+@bot.command()
+async def stats(ctx):
+    """Show your Battle Royale stats"""
+    stats = await ctx.author.fetch_br_stats()
+    all_stats = stats.get_stats()
+    
+    wins = all_stats.get('wins', 0)
+    kills = all_stats.get('kills', 0)
+    kd = stats.get_kd()
+    win_rate = stats.get_winpercentage()
+    
+    await ctx.send(
+        f'{ctx.author.display_name} Stats:\n'
+        f'Wins: {wins}\n'
+        f'Kills: {kills}\n'
+        f'K/D: {kd:.2f}\n'
+        f'Win Rate: {win_rate:.1f}%'
+    )
+
+@bot.command()
+async def rank(ctx):
+    """Show your competitive rank"""
+    ranked = await ctx.author.fetch_ranked_stats(
+        ranking_type=rebootpy.RankingType.BATTLE_ROYALE
+    )
+    
+    if ranked:
+        rank_info = ranked[0]
+        await ctx.send(
+            f'{ctx.author.display_name} Rank:\n'
+            f'Division: {rank_info.division}\n'
+            f'Progress: {rank_info.progress}%'
+        )
+    else:
+        await ctx.send('No ranked data available')
+
+@bot.command()
+async def compare(ctx, friend: commands.FriendConverter):
+    """Compare stats with a friend"""
+    my_stats = await ctx.author.fetch_br_stats()
+    friend_stats = await friend.fetch_br_stats()
+    
+    my_wins = my_stats.get_stats().get('wins', 0)
+    friend_wins = friend_stats.get_stats().get('wins', 0)
+    
+    my_kd = my_stats.get_kd()
+    friend_kd = friend_stats.get_kd()
+    
+    await ctx.send(
+        f'Stats Comparison:\n'
+        f'{ctx.author.display_name}: {my_wins} wins, {my_kd:.2f} K/D\n'
+        f'{friend.display_name}: {friend_wins} wins, {friend_kd:.2f} K/D'
+    )
+```
+
+## Battlepass level
+
+Fetch battlepass progression:
+
+```python
+@client.event
+async def event_ready():
+    # Fetch battlepass level
+    bp_level = await client.user.fetch_battlepass_level()
+    print(f'Battlepass Level: {bp_level}')
+    
+    # For a specific season
+    bp_level = await client.user.fetch_battlepass_level(
+        season=rebootpy.Season.C6S1
+    )
+```
+
+## Stats collections
+
+Fetch collection stats (fish, characters, etc.):
+
+```python
+@client.event
+async def event_ready():
+    # Fetch fish collection
+    fish_collection = await client.user.fetch_stats_collection(
+        collection_type=rebootpy.StatsCollectionType.FISH
+    )
+    
+    # Fetch character collection
+    char_collection = await client.user.fetch_stats_collection(
+        collection_type=rebootpy.StatsCollectionType.CHARACTER
+    )
+```
+
+## Advanced examples
+
+### Leaderboard tracking
+
+```python
+leaderboard = {}
+
+@bot.event
+async def event_friend_add(friend):
+    # Add friend to leaderboard
+    stats = await friend.fetch_br_stats()
+    leaderboard[friend.id] = {
+        'name': friend.display_name,
+        'wins': stats.get_stats().get('wins', 0)
+    }
+
+@bot.command()
+async def leaderboard(ctx):
+    """Show wins leaderboard"""
+    sorted_lb = sorted(
+        leaderboard.values(),
+        key=lambda x: x['wins'],
+        reverse=True
+    )
+    
+    message = 'Wins Leaderboard:\n'
+    for i, player in enumerate(sorted_lb[:10], 1):
+        message += f'{i}. {player["name"]}: {player["wins"]} wins\n'
+    
+    await ctx.send(message)
+```
+
+### Stats tracking over time
+
+```python
+import json
+from datetime import datetime
+
+stats_history = {}
+
+async def track_stats():
+    """Periodically track stats"""
+    while True:
+        stats = await client.user.fetch_br_stats()
+        all_stats = stats.get_stats()
+        
+        timestamp = datetime.now().isoformat()
+        stats_history[timestamp] = {
+            'wins': all_stats.get('wins', 0),
+            'kills': all_stats.get('kills', 0),
+            'matches': all_stats.get('matchesplayed', 0)
+        }
+        
+        # Save to file
+        with open('stats_history.json', 'w') as f:
+            json.dump(stats_history, f)
+        
+        # Check every hour
+        await asyncio.sleep(3600)
+
+@client.event
+async def event_ready():
+    # Start tracking in background
+    client.loop.create_task(track_stats())
+```
+
+### Stats-based auto-responses
+
+```python
+@bot.event
+async def event_friend_message(message):
+    if 'stats' in message.content.lower():
+        stats = await message.author.fetch_br_stats()
+        all_stats = stats.get_stats()
+        
+        wins = all_stats.get('wins', 0)
+        kd = stats.get_kd()
+        
+        await message.reply(
+            f'You have {wins} wins and a {kd:.2f} K/D ratio!'
+        )
+```
+
+## Error handling
+
+```python
+try:
+    stats = await user.fetch_br_stats()
+except rebootpy.HTTPException as e:
+    if e.message_code == 'errors.com.epicgames.fortnite.stats_not_found':
+        print('User has no stats')
+    else:
+        print(f'Error fetching stats: {e}')
+except rebootpy.Forbidden:
+    print('Not authorized to view these stats')
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="User API reference" icon="user" href="/api/user">
+    Full User class and stats methods
+  </Card>
+  <Card title="Stats API reference" icon="chart-line" href="/api/stats">
+    StatsV2 and StatsCollection classes
+  </Card>
+  <Card title="Rank API reference" icon="trophy" href="/api/competitive-rank">
+    CompetitiveRank documentation
+  </Card>
+  <Card title="Enums reference" icon="list" href="/api/enums">
+    RankingType and Season enums
+  </Card>
+</CardGroup>

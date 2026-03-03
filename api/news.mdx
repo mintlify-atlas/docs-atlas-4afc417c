@@ -1,0 +1,65 @@
+---
+title: BattleRoyaleNewsPost
+description: API reference for the BattleRoyaleNewsPost class
+---
+
+## BattleRoyaleNewsPost
+
+Represents a Battle Royale news post.
+
+### Properties
+
+#### image
+
+**Type:** `str`
+
+The image URL of this post.
+
+#### hidden
+
+**Type:** `bool`
+
+`True` if post is hidden else `False`.
+
+#### type
+
+**Type:** `str`
+
+The type of this message.
+
+#### title
+
+**Type:** `str`
+
+The title of this post.
+
+#### body
+
+**Type:** `str`
+
+The actual message of this post.
+
+#### spotlight
+
+**Type:** `bool`
+
+`True` if this post is in the spotlight else `False`.
+
+#### adspace
+
+**Type:** `Optional[str]`
+
+The adspace of this post. `None` if no adspace is found.
+
+### Example
+
+```python
+news_posts = await client.fetch_br_news()
+for post in news_posts:
+    print(f"Title: {post.title}")
+    print(f"Body: {post.body}")
+    print(f"Image: {post.image}")
+    print(f"Spotlight: {post.spotlight}")
+    print(f"Hidden: {post.hidden}")
+    print()
+```

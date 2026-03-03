@@ -1,80 +1,236 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get your first rebootpy bot up and running
 ---
 
-## Get started in three steps
+## Your First Bot
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through creating a simple Fortnite bot using rebootpy. By the end, you'll have a bot that automatically accepts friend requests and responds to commands.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Before starting, make sure you have [installed rebootpy](/installation) on your system.
 </Note>
+
+## Basic Bot Example
+
+<Steps>
+  <Step title="Create your bot file">
+    Create a new Python file (e.g., `bot.py`) and add the following code:
+
+    ```python
+    import rebootpy
+    from rebootpy.ext import commands
+
+    bot = commands.Bot(
+        command_prefix='!',
+        auth=rebootpy.AuthorizationCodeAuth()
+    )
+
+    @bot.event
+    async def event_ready():
+        print(f'Bot ready as {bot.user.display_name} ({bot.user.id})')
+
+    @bot.event
+    async def event_friend_request(request):
+        await request.accept()
+
+    @bot.command()
+    async def hello(ctx):
+        await ctx.send('Hello!')
+
+    bot.run()
+    ```
+
+    This creates a basic bot with:
+    - Authorization code authentication
+    - Auto-accept friend requests
+    - A `!hello` command that responds with "Hello!"
+  </Step>
+
+  <Step title="Obtain an authorization code">
+    To authenticate your bot, you need to get an authorization code:
+
+    1. Log into the Epic Games account you want to use for your bot: [Get Authorization Code](https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D3f69e56c7649492c8cc29f1af08a8a12%26responseType%3Dcode)
+    2. Copy the value of the `authorizationCode` field from the JSON response
+
+    <Warning>
+      Authorization codes are single-use and expire quickly. For persistent bots, consider using DeviceAuth or AdvancedAuth instead.
+    </Warning>
+  </Step>
+
+  <Step title="Run your bot">
+    Execute your bot script:
+
+    ```bash
+    python bot.py
+    ```
+
+    When prompted, paste the authorization code you obtained in the previous step.
+  </Step>
+
+  <Step title="Test your bot">
+    Once your bot is running:
+    - Send a friend request to your bot account from another Epic Games account
+    - The bot will automatically accept the request
+    - Send the message `!hello` to your bot
+    - The bot should respond with "Hello!"
+  </Step>
+</Steps>
+
+## Advanced Bot with Device Auth
+
+For a production bot that persists authentication across restarts, use `AdvancedAuth` with device authentication:
+
+```python
+import rebootpy
+import json
+import os
+
+from rebootpy.ext import commands
+
+filename = 'device_auths.json'
+
+def get_device_auth_details():
+    if os.path.isfile(filename):
+        with open(filename, 'r') as fp:
+            return json.load(fp)
+    return {}
+
+def store_device_auth_details(details):
+    with open(filename, 'w') as fp:
+        json.dump(details, fp)
+
+device_auth_details = get_device_auth_details()
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AdvancedAuth(
+        prompt_device_code=True,
+        open_link_in_browser=True,
+        **device_auth_details
+    )
+)
+
+@bot.event
+async def event_device_auth_generate(details):
+    store_device_auth_details(details)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name} ({bot.user.id}).')
+
+@bot.event
+async def event_friend_request(request):
+    await request.accept()
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello!')
+
+bot.run()
+```
+
+### How This Works
+
+<Steps>
+  <Step title="First Run">
+    On the first run, the bot will:
+    - Open a browser window for device code authentication
+    - Generate device authentication credentials
+    - Save them to `device_auths.json`
+  </Step>
+
+  <Step title="Subsequent Runs">
+    On future runs:
+    - The bot loads credentials from `device_auths.json`
+    - No manual authentication required
+    - The bot starts automatically
+  </Step>
+</Steps>
+
+<Note>
+  Keep your `device_auths.json` file secure and private. It contains credentials that can be used to access your Epic Games account.
+</Note>
+
+## Understanding the Code
+
+### Bot Initialization
+
+```python
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth()
+)
+```
+
+- `command_prefix`: The prefix for bot commands (e.g., `!hello`, `!help`)
+- `auth`: The authentication method to use
+
+### Events
+
+Events are triggered by specific actions:
+
+```python
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name} ({bot.user.id})')
+```
+
+The `event_ready` event fires when the bot successfully connects and is ready to operate.
+
+```python
+@bot.event
+async def event_friend_request(request):
+    await request.accept()
+```
+
+The `event_friend_request` event fires when someone sends a friend request. This example automatically accepts all requests.
+
+### Commands
+
+```python
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello!')
+```
+
+Commands are triggered by users with the specified prefix. The `ctx` parameter provides context like the sender and conversation.
+
+## Next Steps
+
+Now that you have a working bot, explore more features:
+
+<CardGroup cols={2}>
+  <Card title="Authentication Methods" icon="key" href="/auth/overview">
+    Learn about different authentication options
+  </Card>
+  <Card title="Events" icon="bolt" href="/concepts/events">
+    Discover all available events
+  </Card>
+  <Card title="Commands" icon="terminal" href="/extensions/commands">
+    Build more complex command handlers
+  </Card>
+  <Card title="Party Management" icon="users" href="/guides/party-management">
+    Manage parties and party members
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+### Authorization Code Expired
+
+Authorization codes are single-use and expire quickly. If you get an authentication error:
+- Generate a new authorization code
+- Consider using `AdvancedAuth` for persistent authentication
+
+### Bot Not Responding to Commands
+
+Ensure:
+- You're using the correct command prefix (default: `!`)
+- You're sending commands as friend messages to the bot
+- The bot has successfully started (check for "Bot ready" message)
+
+### Import Errors
+
+If you encounter import errors:
+- Verify rebootpy is installed: `pip list | grep rebootpy`
+- Reinstall if necessary: `pip install -U rebootpy`

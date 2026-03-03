@@ -1,0 +1,220 @@
+---
+title: "Party Invitations"
+description: "ReceivedPartyInvitation, SentPartyInvitation, and PartyJoinConfirmation classes"
+---
+
+## ReceivedPartyInvitation
+
+Represents a received party invitation.
+
+### Attributes
+
+<ParamField path="client" type="Client">
+  The client instance.
+</ParamField>
+
+<ParamField path="party" type="Party">
+  The party the invitation belongs to.
+</ParamField>
+
+<ParamField path="net_cl" type="str">
+  The net_cl received by the sending client.
+</ParamField>
+
+<ParamField path="sender" type="Friend">
+  The friend that invited you to the party.
+</ParamField>
+
+<ParamField path="created_at" type="datetime.datetime">
+  The UTC time this invite was created at.
+</ParamField>
+
+### Methods
+
+#### accept
+
+```python
+async def accept() -> ClientParty
+```
+
+Accepts the invitation and joins the party.
+
+<Warning>
+  A bug within the Fortnite services makes it not possible to join a private party you have been kicked from.
+</Warning>
+
+<ResponseField name="return" type="ClientParty">
+  The party the client joined by accepting the invitation.
+</ResponseField>
+
+**Raises:**
+- `Forbidden` - You attempted to join a private party you've been kicked from.
+- `PartyError` - The client's net_cl is not compatible with the received net_cl.
+- `HTTPException` - Something went wrong when accepting the invitation.
+
+#### decline
+
+```python
+async def decline() -> None
+```
+
+Declines the invitation.
+
+**Raises:**
+- `HTTPException` - Something went wrong when declining the invitation.
+
+---
+
+## SentPartyInvitation
+
+Represents a sent party invitation.
+
+### Attributes
+
+<ParamField path="client" type="Client">
+  The client instance.
+</ParamField>
+
+<ParamField path="party" type="Party">
+  The party the invitation belongs to.
+</ParamField>
+
+<ParamField path="sender" type="PartyMember">
+  The party member that sent the invite.
+</ParamField>
+
+<ParamField path="receiver" type="User">
+  The user that the invite was sent to.
+</ParamField>
+
+<ParamField path="created_at" type="datetime.datetime">
+  The UTC time this invite was created at.
+</ParamField>
+
+### Methods
+
+#### cancel
+
+```python
+async def cancel() -> None
+```
+
+Cancels the invite. The user will see an error message saying something like `<user>'s party is private.`
+
+**Raises:**
+- `Forbidden` - Attempted to cancel an invite not sent by the client.
+- `HTTPException` - Something went wrong while requesting to cancel the invite.
+
+#### resend
+
+```python
+async def resend() -> None
+```
+
+Resends an invite with a new notification popping up for the receiving user.
+
+**Raises:**
+- `Forbidden` - Attempted to resend an invite not sent by the client.
+- `HTTPException` - Something went wrong while requesting to resend the invite.
+
+---
+
+## PartyJoinConfirmation
+
+Represents a join confirmation.
+
+### Attributes
+
+<ParamField path="client" type="Client">
+  The client instance.
+</ParamField>
+
+<ParamField path="party" type="ClientParty">
+  The party the user wants to join.
+</ParamField>
+
+<ParamField path="user" type="User">
+  The user who requested to join the party.
+</ParamField>
+
+<ParamField path="created_at" type="datetime.datetime">
+  The UTC time of when the join confirmation was received.
+</ParamField>
+
+### Methods
+
+#### confirm
+
+```python
+async def confirm() -> None
+```
+
+Confirms this user.
+
+<Note>
+  This call does not guarantee that the player will end up in the client's party. Always listen to the `event_party_member_join()` event to ensure that the player in fact joined.
+</Note>
+
+**Raises:**
+- `HTTPException` - Something went wrong when confirming this user.
+
+#### reject
+
+```python
+async def reject() -> None
+```
+
+Rejects this user.
+
+**Raises:**
+- `HTTPException` - Something went wrong when rejecting this user.
+
+---
+
+## PartyJoinRequest
+
+Represents a party join request. These requests are in most cases only received when the bot's party privacy is set to private.
+
+<Info>
+  There is currently no way to reject a join request. The official Fortnite client does this by simply ignoring the request and waiting for it to expire.
+</Info>
+
+### Attributes
+
+<ParamField path="client" type="Client">
+  The client instance.
+</ParamField>
+
+<ParamField path="party" type="ClientParty">
+  The party the user wants to join.
+</ParamField>
+
+<ParamField path="friend" type="Friend">
+  The friend who requested to join the party.
+</ParamField>
+
+<ParamField path="created_at" type="datetime.datetime">
+  The UTC timestamp of when this join request was created.
+</ParamField>
+
+<ParamField path="expires_at" type="datetime.datetime">
+  The UTC timestamp of when this join request will expire. This should always be one minute after its creation.
+</ParamField>
+
+### Methods
+
+#### accept
+
+```python
+async def accept() -> SentPartyInvitation
+```
+
+Accepts a party join request. Accepting this before the request has expired forces the sender to join the party. If not then the sender will receive a regular party invite.
+
+<ResponseField name="return" type="SentPartyInvitation">
+  Object representing the sent party invitation.
+</ResponseField>
+
+**Raises:**
+- `PartyError` - User is already in your party or the party is full.
+- `HTTPException` - An error occurred while requesting.

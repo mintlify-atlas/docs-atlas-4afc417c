@@ -1,0 +1,136 @@
+---
+title: Authentication Overview
+description: Overview of all authentication methods available in rebootpy
+---
+
+rebootpy provides several authentication methods to connect your bot to Epic Games services. Each method has different use cases and requirements.
+
+## Available Authentication Methods
+
+### DeviceAuth (Recommended)
+
+The recommended authentication method for production bots. Device authentication uses stored credentials that persist across sessions.
+
+```python
+import rebootpy
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceAuth(
+        device_id='your_device_id',
+        account_id='your_account_id',
+        secret='your_secret'
+    )
+)
+```
+
+[Learn more about DeviceAuth](/auth/device-auth)
+
+### AdvancedAuth (Best for Getting Started)
+
+A flexible authentication method that tries multiple authentication strategies automatically. Perfect for development and getting started quickly.
+
+```python
+import rebootpy
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AdvancedAuth(
+        prompt_device_code=True,
+        open_link_in_browser=True
+    )
+)
+```
+
+[Learn more about AdvancedAuth](/auth/advanced)
+
+### DeviceCodeAuth
+
+Authenticate using device code flow. Opens a browser for login and doesn't require copying codes manually.
+
+```python
+import rebootpy
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth(
+        open_link_in_browser=True
+    )
+)
+```
+
+[Learn more about DeviceCodeAuth](/auth/device-code)
+
+### AuthorizationCodeAuth
+
+Authenticate using a one-time authorization code from Epic Games.
+
+```python
+import rebootpy
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your_authorization_code'
+    )
+)
+```
+
+[Learn more about AuthorizationCodeAuth](/auth/authorization-code)
+
+### ExchangeCodeAuth
+
+Authenticate using an exchange code. Requires custom solutions to obtain the code.
+
+```python
+import rebootpy
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.ExchangeCodeAuth(
+        code='your_exchange_code'
+    )
+)
+```
+
+[Learn more about ExchangeCodeAuth](/auth/exchange-code)
+
+## Comparison
+
+| Method | Ease of Use | Production Ready | Requires Manual Input | Persists Across Sessions |
+|--------|-------------|------------------|----------------------|-------------------------|
+| DeviceAuth | Medium | Yes | No (after initial setup) | Yes |
+| AdvancedAuth | High | Yes | Optional | Yes (auto-generates device auth) |
+| DeviceCodeAuth | High | Yes | Yes (browser login) | No |
+| AuthorizationCodeAuth | Medium | No | Yes (copy code) | No |
+| ExchangeCodeAuth | Low | No | Yes (custom solution) | No |
+
+## Quick Start Recommendation
+
+1. **For Development**: Start with `AdvancedAuth` or `DeviceCodeAuth` for the easiest setup
+2. **For Production**: Use `DeviceAuth` with stored credentials for reliability
+3. **Migration Path**: Use `AdvancedAuth` to automatically generate device auth credentials, then switch to `DeviceAuth`
+
+## Common Attributes
+
+All authentication methods provide these attributes:
+
+<ParamField path="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ParamField>
+
+<ParamField path="account_id" type="str">
+  The account ID of the authenticated user.
+</ParamField>
+
+## Security Best Practices
+
+<Warning>
+  Never commit authentication credentials to version control. Use environment variables or secure credential storage.
+</Warning>
+
+- Store device auth credentials securely
+- Use environment variables for sensitive data
+- Rotate credentials periodically
+- Monitor for unauthorized access
+- When device auth is compromised, reset your Epic Games password to invalidate all device auths

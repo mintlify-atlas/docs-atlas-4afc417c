@@ -1,0 +1,149 @@
+---
+title: DeviceCodeAuth
+description: Authenticate with device code flow
+---
+
+Authenticates using the device code flow. This method displays a link that the user must visit to authorize the application.
+
+If you'd like to handle the device code link yourself instead of it being printed to console, you can use the `event_device_code_generated()` event.
+
+## Class Signature
+
+```python
+class DeviceCodeAuth(Auth):
+    def __init__(self, open_link_in_browser: bool = True, **kwargs: Any) -> None
+```
+
+## Parameters
+
+<ParamField path="open_link_in_browser" type="bool" default={true}>
+  Whether or not to automatically open the Epic Games login in the default browser.
+</ParamField>
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+<ParamField path="switch_token" type="str" optional>
+  The switch token to use with authentication. You should generally not need to set this manually.
+  
+  Default: `OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3`
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the account ID.
+</ResponseField>
+
+## Methods
+
+### eula_check_needed
+
+```python
+def eula_check_needed() -> bool
+```
+
+Returns whether EULA check is needed.
+
+**Returns:** `False` (device code auth doesn't require EULA check)
+
+### ios_authenticate
+
+```python
+async def ios_authenticate(priority: int = 0) -> dict
+```
+
+Performs iOS authentication using device code flow.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+**Process:**
+1. Obtains a switch token using client credentials
+2. Creates a device code
+3. Opens the verification URL in browser (if `open_link_in_browser` is `True`)
+4. Dispatches `device_code_generated` event or prints the URL
+5. Polls for user authorization
+6. Exchanges the device code for an access token
+7. Obtains an exchange code
+8. Exchanges the code for a session
+
+### authenticate
+
+```python
+async def authenticate(priority: int = 0) -> None
+```
+
+Authenticates the client and sets up all required tokens.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Side effects:**
+- Updates iOS token data
+- Kills other sessions (if `client.kill_other_sessions` is `True`)
+- Obtains and updates chat, EAS, and EOS tokens
+- Sets up the client user
+
+### reauthenticate
+
+```python
+async def reauthenticate(priority: int = 0) -> None
+```
+
+Used for reauthenticating if refreshing fails.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+## Example Usage
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.DeviceCodeAuth(
+        open_link_in_browser=True
+    )
+)
+
+# Handle the device code event if you want custom behavior
+@client.event
+async def event_device_code_generated(url):
+    print(f'Please visit: {url}')
+    # You could send this URL to a Discord channel, display in a UI, etc.
+
+await client.start()
+```
+
+## Error Handling
+
+The device code flow handles several corrective actions automatically:
+
+- **DATE_OF_BIRTH**: If a date of birth is required, a random date is generated and submitted automatically
+- **Authorization pending**: The method polls every 10 seconds until authorization is complete
+
+If an unsupported corrective action is required, an `AuthException` is raised.
+
+## Events
+
+<ResponseField name="device_code_generated" type="event">
+  Dispatched when the device code URL is generated.
+  
+  **Parameters:**
+  - `url` (str): The verification URI to display to the user
+</ResponseField>
+
+## Source
+
+View source: [rebootpy/auth.py:1186](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L1186)

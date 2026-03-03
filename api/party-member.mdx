@@ -1,0 +1,312 @@
+---
+title: "PartyMember"
+description: "PartyMember class API reference"
+---
+
+## PartyMember
+
+Represents a party member.
+
+### Attributes
+
+<ParamField path="client" type="Client">
+  The client instance.
+</ParamField>
+
+<ParamField path="party" type="Union[Party, ClientParty]">
+  The party this member is a part of.
+</ParamField>
+
+<ParamField path="joined_at" type="datetime.datetime">
+  The UTC time of when this member joined its party.
+</ParamField>
+
+<ParamField path="leader" type="bool">
+  `True` if member is the leader, else `False`.
+</ParamField>
+
+<ParamField path="position" type="int">
+  This member's position in the party (0-15). This position defines which team you're a part of:
+  - 0-3 = Team 1
+  - 4-7 = Team 2
+  - 8-11 = Team 3
+  - 12-15 = Team 4
+</ParamField>
+
+<ParamField path="hidden" type="bool">
+  Whether or not the member is currently hidden in the party.
+</ParamField>
+
+<ParamField path="platform" type="Platform">
+  The platform this user currently uses.
+</ParamField>
+
+<ParamField path="ready" type="ReadyState">
+  The member's ready state.
+</ParamField>
+
+<ParamField path="input" type="str">
+  The input type this user is currently using.
+</ParamField>
+
+<ParamField path="outfit" type="str">
+  The CID of the outfit this user currently has equipped.
+</ParamField>
+
+<ParamField path="backpack" type="str">
+  The BID of the backpack this member currently has equipped. `None` if no backpack is equipped.
+</ParamField>
+
+<ParamField path="pet" type="str">
+  The ID of the pet this member currently has equipped. `None` if no pet is equipped.
+</ParamField>
+
+<ParamField path="pickaxe" type="str">
+  The pickaxe ID of the pickaxe this member currently has equipped.
+</ParamField>
+
+<ParamField path="contrail" type="str">
+  The contrail ID of the contrail this member currently has equipped.
+</ParamField>
+
+<ParamField path="kicks" type="str">
+  The kicks (shoes) ID this member currently has equipped.
+</ParamField>
+
+<ParamField path="outfit_variants" type="List[Dict[str, str]]">
+  A list containing the raw variants data for the currently equipped outfit.
+</ParamField>
+
+<ParamField path="backpack_variants" type="List[Dict[str, str]]">
+  A list containing the raw variants data for the currently equipped backpack.
+</ParamField>
+
+<ParamField path="pickaxe_variants" type="List[Dict[str, str]]">
+  A list containing the raw variants data for the currently equipped pickaxe.
+</ParamField>
+
+<ParamField path="kicks_variants" type="List[Dict[str, str]]">
+  A list containing the raw variants data for the currently equipped kicks.
+</ParamField>
+
+<ParamField path="contrail_variants" type="List[Dict[str, str]]">
+  A list containing the raw variants data for the currently equipped contrail.
+</ParamField>
+
+<ParamField path="enlightenments" type="List[Tuple[int, int]]">
+  A list of tuples containing the enlightenments of this member.
+</ParamField>
+
+<ParamField path="corruption" type="Optional[float]">
+  The corruption value this member is using. `None` if no corruption value is set.
+</ParamField>
+
+<ParamField path="has_crown" type="bool">
+  Whether this member currently has a crown or not.
+</ParamField>
+
+<ParamField path="victory_crowns" type="int">
+  The current crown wins of this member.
+</ParamField>
+
+<ParamField path="rank" type="int">
+  The current rank of this member.
+</ParamField>
+
+<ParamField path="emote" type="Optional[str]">
+  The EID of the emote this member is currently playing. `None` if no emote is currently playing.
+</ParamField>
+
+<ParamField path="emoji" type="Optional[str]">
+  The ID of the emoji this member is currently playing. `None` if no emoji is currently playing.
+</ParamField>
+
+<ParamField path="banner" type="Tuple[str, str, int]">
+  A tuple consisting of the icon ID, color ID, and the season level. Example: `('standardbanner15', 'defaultcolor15', 50)`
+</ParamField>
+
+<ParamField path="battlepass_info" type="Tuple[bool, int]">
+  A tuple consisting of has purchased and battlepass level. Example: `(True, 30)`
+</ParamField>
+
+<ParamField path="match_started_at" type="Optional[datetime.datetime]">
+  The time in UTC that the member's match started. `None` if not in a match.
+</ParamField>
+
+<ParamField path="match_players_left" type="int">
+  How many players there are left in this player's match. Defaults to `0` if not in a match.
+</ParamField>
+
+<ParamField path="lobby_map_marker_coordinates" type="Tuple[float, float]">
+  A tuple containing the x and y coordinates of this member's current lobby map marker. The coordinates range is roughly `-135000.0 <= coordinate <= 135000`.
+</ParamField>
+
+<ParamField path="playlist_selection" type="str">
+  The last playlist that this member selected. Example: `experience_reload`
+</ParamField>
+
+### Methods
+
+#### in_match
+
+```python
+def in_match() -> bool
+```
+
+Whether or not this member is currently in a match.
+
+<ResponseField name="return" type="bool">
+  `True` if this member is in a match, else `False`.
+</ResponseField>
+
+#### is_ready
+
+```python
+def is_ready() -> bool
+```
+
+Whether or not this member is ready.
+
+<ResponseField name="return" type="bool">
+  `True` if this member is ready, else `False`.
+</ResponseField>
+
+#### is_zombie
+
+```python
+def is_zombie() -> bool
+```
+
+Whether or not this member is in a zombie mode (XMPP connection disconnected and not responding).
+
+<ResponseField name="return" type="bool">
+  `True` if this member is a zombie, else `False`.
+</ResponseField>
+
+#### lobby_map_marker_is_visible
+
+```python
+def lobby_map_marker_is_visible() -> bool
+```
+
+Whether or not this member's lobby map marker is currently visible.
+
+<ResponseField name="return" type="bool">
+  `True` if this member's lobby map marker is currently visible, else `False`.
+</ResponseField>
+
+#### kick
+
+```python
+async def kick() -> None
+```
+
+Kicks this member from the party.
+
+**Raises:**
+- `Forbidden` - You are not the leader of the party.
+- `PartyError` - You attempted to kick yourself.
+- `HTTPException` - Something else went wrong when trying to kick this member.
+
+#### promote
+
+```python
+async def promote() -> None
+```
+
+Promotes this user to party leader.
+
+**Raises:**
+- `Forbidden` - You are not the leader of the party.
+- `PartyError` - You are already party leader.
+- `HTTPException` - Something else went wrong when trying to promote this member.
+
+#### swap_position
+
+```python
+async def swap_position() -> None
+```
+
+Swaps the client's party position with this member.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### create_variant
+
+```python
+@staticmethod
+def create_variant(
+    *,
+    config_overrides: Dict[str, str] = {},
+    **kwargs: Any
+) -> List[Dict[str, Union[str, int]]]
+```
+
+Creates the variants list by the variants you set.
+
+<ParamField path="config_overrides" type="Dict[str, str]">
+  A config that overrides the default config for the variant backend names.
+</ParamField>
+
+<ParamField path="pattern" type="Optional[int]">
+  The pattern number you want to use.
+</ParamField>
+
+<ParamField path="numeric" type="Optional[int]">
+  The numeric number you want to use.
+</ParamField>
+
+<ParamField path="clothing_color" type="Optional[int]">
+  The clothing color you want to use.
+</ParamField>
+
+<ParamField path="jersey_color" type="Optional[str]">
+  The jersey color you want to use. For soccer skins this is the country you want the jersey to represent.
+</ParamField>
+
+<ParamField path="parts" type="Optional[int]">
+  The parts number you want to use.
+</ParamField>
+
+<ParamField path="progressive" type="Optional[int]">
+  The progressing number you want to use.
+</ParamField>
+
+<ParamField path="particle" type="Optional[int]">
+  The particle number you want to use.
+</ParamField>
+
+<ParamField path="material" type="Optional[int]">
+  The material number you want to use.
+</ParamField>
+
+<ParamField path="emissive" type="Optional[int]">
+  The emissive number you want to use.
+</ParamField>
+
+<ParamField path="profile_banner" type="Optional[str]">
+  The profile banner to use. The value should almost always be `ProfileBanner`.
+</ParamField>
+
+<ResponseField name="return" type="List[Dict[str, Union[str, int]]]">
+  List of dictionaries including all variants data.
+</ResponseField>
+
+**Example:**
+```python
+# Set the outfit to soccer skin with Norwegian jersey and jersey number 99
+async def set_soccer_skin():
+    me = client.party.me
+    
+    variants = me.create_variant(
+        pattern=0,
+        numeric=99,
+        jersey_color='Norway'
+    )
+    
+    await me.set_outfit(
+        asset='CID_149_Athena_Commando_F_SoccerGirlB',
+        variants=variants
+    )
+```

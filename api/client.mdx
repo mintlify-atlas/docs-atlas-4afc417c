@@ -1,0 +1,528 @@
+---
+title: "Client"
+description: "Full-featured Fortnite client with party, friends, and XMPP support"
+---
+
+## Overview
+
+The `Client` class represents the full-featured client connected to Fortnite and EpicGames' services. It extends `BasicClient` with support for:
+
+- Parties and party management
+- Friends and friendship management
+- XMPP messaging
+- Presence and status updates
+- Real-time events
+
+## Constructor
+
+```python
+Client(
+    auth: Auth,
+    **kwargs
+)
+```
+
+<ParamField path="auth" type="Auth" required>
+  The authentication method to use. See [Authentication](/authentication) for available methods.
+</ParamField>
+
+<ParamField path="http_connector" type="aiohttp.BaseConnector">
+  The connector to use for HTTP connection pooling.
+</ParamField>
+
+<ParamField path="ws_connector" type="aiohttp.BaseConnector">
+  The connector to use for websocket connection pooling.
+</ParamField>
+
+<ParamField path="status" type="str" default="{current_playlist}">
+  The status message sent with presence to friends. Supports variables:
+  - `{party_size}` - Number of players in the party
+  - `{party_max_size}` - Maximum party size
+  - `{current_playlist}` - Current playlist name (e.g., "Battle Royale")
+</ParamField>
+
+<ParamField path="away" type="AwayStatus" default="AwayStatus.ONLINE">
+  The away status for the client's presence.
+</ParamField>
+
+<ParamField path="platform" type="Platform" default="Platform.WINDOWS">
+  The platform to display as the client's source.
+</ParamField>
+
+<ParamField path="net_cl" type="str" default="">
+  The current net CL used by Fortnite. Defaults to empty string (recommended).
+</ParamField>
+
+<ParamField path="party_version" type="int" default="3">
+  The party version to use. Determines party compatibility.
+</ParamField>
+
+<ParamField path="default_party_config" type="DefaultPartyConfig">
+  The default configuration used when creating parties.
+</ParamField>
+
+<ParamField path="default_party_member_config" type="DefaultPartyMemberConfig">
+  The default party member configuration.
+</ParamField>
+
+<ParamField path="http_retry_config" type="HTTPRetryConfig">
+  Configuration for HTTP retries.
+</ParamField>
+
+<ParamField path="build" type="str" default="++Fortnite+Release-38.10-CL-47888945">
+  The Fortnite build version string.
+</ParamField>
+
+<ParamField path="os" type="str" default="Windows/10.0.19045.1.768.64bit">
+  The OS version string for the user agent.
+</ParamField>
+
+<ParamField path="service_host" type="str" default="prod.ol.epicgames.com">
+  The host for Fortnite's XMPP services.
+</ParamField>
+
+<ParamField path="service_domain" type="str" default="xmpp-service-prod.ol.epicgames.com">
+  The domain for Fortnite's XMPP services.
+</ParamField>
+
+<ParamField path="service_port" type="int" default="5222">
+  The port for Fortnite's XMPP services.
+</ParamField>
+
+<ParamField path="cache_users" type="bool" default="True">
+  Whether to cache User objects. Disable for programs with many users.
+</ParamField>
+
+<ParamField path="kill_other_sessions" type="bool" default="True">
+  Whether to kill other existing sessions on login.
+</ParamField>
+
+<ParamField path="fetch_user_data_in_events" type="bool" default="True">
+  Whether to fetch user data during event processing. Disabling may help with rate limits but some user attributes may be `None`.
+</ParamField>
+
+<ParamField path="wait_for_member_meta_in_events" type="bool" default="True">
+  Whether to wait for party member metadata before dispatching events.
+</ParamField>
+
+<ParamField path="leave_party_at_shutdown" type="bool" default="True">
+  Whether to leave the current party on shutdown.
+</ParamField>
+
+## Attributes
+
+<ResponseField name="user" type="ClientUser">
+  The user the client is logged in as.
+</ResponseField>
+
+<ResponseField name="party" type="ClientParty">
+  The party the client is currently connected to.
+</ResponseField>
+
+<ResponseField name="friends" type="List[Friend]">
+  List of the client's friends.
+</ResponseField>
+
+<ResponseField name="friend_count" type="int">
+  The number of friends the client has.
+</ResponseField>
+
+<ResponseField name="pending_friends" type="List[Union[IncomingPendingFriend, OutgoingPendingFriend]]">
+  List of all pending friend requests (incoming and outgoing).
+</ResponseField>
+
+<ResponseField name="pending_friend_count" type="int">
+  The total number of pending friends.
+</ResponseField>
+
+<ResponseField name="incoming_pending_friends" type="List[IncomingPendingFriend]">
+  List of incoming pending friend requests.
+</ResponseField>
+
+<ResponseField name="incoming_pending_friend_count" type="int">
+  The number of incoming pending friend requests.
+</ResponseField>
+
+<ResponseField name="outgoing_pending_friends" type="List[OutgoingPendingFriend]">
+  List of outgoing pending friend requests.
+</ResponseField>
+
+<ResponseField name="outgoing_pending_friend_count" type="int">
+  The number of outgoing pending friend requests.
+</ResponseField>
+
+<ResponseField name="blocked_users" type="List[BlockedUser]">
+  List of blocked users.
+</ResponseField>
+
+<ResponseField name="blocked_user_count" type="int">
+  The number of blocked users.
+</ResponseField>
+
+<ResponseField name="presences" type="List[Presence]">
+  List of last presences from currently online friends.
+</ResponseField>
+
+## Methods
+
+### run
+
+```python
+client.run()
+```
+
+Starts the event loop and runs the client. This is a blocking method and should be the last function called.
+
+<Note>
+  This method handles `KeyboardInterrupt` gracefully and closes the client automatically.
+</Note>
+
+**Raises:**
+- `AuthException` - Invalid credentials or authentication failure
+- `HTTPException` - Request error during login
+
+---
+
+### start
+
+```python
+await client.start(dispatch_ready: bool = True)
+```
+
+Starts the client and logs in. Can be used as a coroutine or async context manager.
+
+<ParamField path="dispatch_ready" type="bool" default="True">
+  Whether to dispatch the `ready` event when ready.
+</ParamField>
+
+**Usage as context manager:**
+```python
+async with client.start():
+    user = await client.fetch_user('Ninja')
+    print(user.display_name)
+```
+
+**Usage with await:**
+```python
+async with client.start() as future:
+    user = await client.fetch_user('Ninja')
+    await future  # Runs forever
+```
+
+**Raises:**
+- `AuthException` - Invalid credentials or authentication failure
+- `HTTPException` - Request error during login
+
+---
+
+### close
+
+```python
+await client.close(
+    close_http: bool = True,
+    dispatch_close: bool = True
+)
+```
+
+Logs out and closes running services.
+
+<ParamField path="close_http" type="bool" default="True">
+  Whether to close the HTTP client session.
+</ParamField>
+
+<ParamField path="dispatch_close" type="bool" default="True">
+  Whether to dispatch the close event.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - Error during logout
+
+---
+
+### join_party
+
+```python
+await client.join_party(party_id: str) -> ClientParty
+```
+
+Joins a party by its ID.
+
+<ParamField path="party_id" type="str" required>
+  The ID of the party to join.
+</ParamField>
+
+<ResponseField name="return" type="ClientParty">
+  The party that was joined.
+</ResponseField>
+
+**Raises:**
+- `PartyError` - Already a member of this party
+- `NotFound` - Party not found
+- `PartyIsFull` - Party is full
+- `Forbidden` - Not allowed to join (private or kicked)
+- `HTTPException` - Request error
+
+<Warning>
+  The client leaves its current party before joining. If an error occurs, a new party is created.
+</Warning>
+
+---
+
+### set_presence
+
+```python
+client.set_presence(
+    status: str,
+    away: AwayStatus = AwayStatus.ONLINE
+)
+```
+
+Sets the client's presence status. Overrides party presence status.
+
+<ParamField path="status" type="str" required>
+  The status message to set.
+</ParamField>
+
+<ParamField path="away" type="AwayStatus" default="AwayStatus.ONLINE">
+  The away status to use.
+</ParamField>
+
+**Raises:**
+- `TypeError` - Status is not a string
+
+---
+
+### accept_friend
+
+```python
+await client.accept_friend(user_id: str) -> Friend
+```
+
+Accepts a friend request.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the user to accept.
+</ParamField>
+
+<ResponseField name="return" type="Friend">
+  The newly added friend.
+</ResponseField>
+
+<Warning>
+  Do not use this method to send friend requests. Use `add_friend()` instead.
+</Warning>
+
+**Raises:**
+- `NotFound` - User does not exist
+- `DuplicateFriendship` - Already friends
+- `FriendshipRequestAlreadySent` - Request already sent
+- `Forbidden` - Not allowed due to user settings
+- `HTTPException` - Request error
+
+---
+
+### get_friend
+
+```python
+client.get_friend(user_id: str) -> Optional[Friend]
+```
+
+Gets a friend from cache by user ID.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the friend.
+</ParamField>
+
+<ResponseField name="return" type="Optional[Friend]">
+  The friend if found, else `None`.
+</ResponseField>
+
+---
+
+### get_pending_friend
+
+```python
+client.get_pending_friend(user_id: str) -> Optional[Union[IncomingPendingFriend, OutgoingPendingFriend]]
+```
+
+Gets a pending friend from cache by user ID.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the pending friend.
+</ParamField>
+
+<ResponseField name="return" type="Optional[Union[IncomingPendingFriend, OutgoingPendingFriend]]">
+  The pending friend if found, else `None`.
+</ResponseField>
+
+---
+
+### get_incoming_pending_friend
+
+```python
+client.get_incoming_pending_friend(user_id: str) -> Optional[IncomingPendingFriend]
+```
+
+Gets an incoming pending friend from cache by user ID.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the incoming pending friend.
+</ParamField>
+
+<ResponseField name="return" type="Optional[IncomingPendingFriend]">
+  The incoming pending friend if found, else `None`.
+</ResponseField>
+
+---
+
+### get_outgoing_pending_friend
+
+```python
+client.get_outgoing_pending_friend(user_id: str) -> Optional[OutgoingPendingFriend]
+```
+
+Gets an outgoing pending friend from cache by user ID.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the outgoing pending friend.
+</ParamField>
+
+<ResponseField name="return" type="Optional[OutgoingPendingFriend]">
+  The outgoing pending friend if found, else `None`.
+</ResponseField>
+
+---
+
+### get_blocked_user
+
+```python
+client.get_blocked_user(user_id: str) -> Optional[BlockedUser]
+```
+
+Gets a blocked user from cache by user ID.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the blocked user.
+</ParamField>
+
+<ResponseField name="return" type="Optional[BlockedUser]">
+  The blocked user if found, else `None`.
+</ResponseField>
+
+---
+
+### get_presence
+
+```python
+client.get_presence(user_id: str) -> Optional[Presence]
+```
+
+Gets the latest presence from cache for a friend.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the friend.
+</ParamField>
+
+<ResponseField name="return" type="Optional[Presence]">
+  The presence if found, else `None`.
+</ResponseField>
+
+---
+
+### has_friend
+
+```python
+client.has_friend(user_id: str) -> bool
+```
+
+Checks if the client is friends with a user.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the user to check.
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  `True` if friends, else `False`.
+</ResponseField>
+
+---
+
+### is_pending
+
+```python
+client.is_pending(user_id: str) -> bool
+```
+
+Checks if a user is a pending friend.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the user to check.
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  `True` if pending friend, else `False`.
+</ResponseField>
+
+---
+
+### is_blocked
+
+```python
+client.is_blocked(user_id: str) -> bool
+```
+
+Checks if a user is blocked.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the user to check.
+</ParamField>
+
+<ResponseField name="return" type="bool">
+  `True` if blocked, else `False`.
+</ResponseField>
+
+---
+
+## Inherited Methods
+
+The `Client` class inherits all methods from `BasicClient`, including:
+
+- User fetching methods (`fetch_user`, `fetch_users`, etc.)
+- Stats methods (`fetch_br_stats`, `fetch_ranked_stats`, etc.)
+- Friend management (`add_friend`, `remove_or_decline_friend`, etc.)
+- Block management (`block_user`, `unblock_user`, `fetch_blocklist`)
+- Event handling (`event`, `wait_for`, `add_event_handler`, etc.)
+- Store and news methods (`fetch_item_shop`, `fetch_br_news`, etc.)
+
+See [BasicClient](/api/basic-client) for complete documentation of inherited methods.
+
+## Example
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.DeviceAuth(
+        device_id='your_device_id',
+        account_id='your_account_id',
+        secret='your_secret'
+    )
+)
+
+@client.event
+async def event_ready():
+    print(f'Logged in as {client.user.display_name}')
+    print(f'Friends: {client.friend_count}')
+
+@client.event
+async def event_friend_request(request):
+    await request.accept()
+    print(f'Accepted friend request from {request.display_name}')
+
+@client.event
+async def event_party_invitation(invitation):
+    await invitation.accept()
+    print(f'Joined party from {invitation.sender.display_name}')
+
+client.run()
+```

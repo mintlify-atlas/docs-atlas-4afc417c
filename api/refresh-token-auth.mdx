@@ -1,0 +1,240 @@
+---
+title: RefreshTokenAuth
+description: Authenticate with a launcher refresh token
+---
+
+Authenticates using a launcher refresh token. This authentication method is useful when you have a valid refresh token from a previous authentication session.
+
+## Class Signature
+
+```python
+class RefreshTokenAuth(Auth):
+    def __init__(self, refresh_token: str, **kwargs: Any) -> None
+```
+
+## Parameters
+
+<ParamField path="refresh_token" type="str" required>
+  A valid launcher refresh token.
+</ParamField>
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the refresh token.
+</ResponseField>
+
+## Methods
+
+### eula_check_needed
+
+```python
+def eula_check_needed() -> bool
+```
+
+Returns whether EULA check is needed.
+
+**Returns:** `False` (refresh token auth doesn't require EULA check)
+
+### ios_authenticate
+
+```python
+async def ios_authenticate(priority: int = 0) -> dict
+```
+
+Performs iOS authentication using the refresh token.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+### authenticate
+
+```python
+async def authenticate(priority: int = 0) -> None
+```
+
+Authenticates the client and sets up all required tokens.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Side effects:**
+- Updates iOS token data
+- Kills other sessions (if `client.kill_other_sessions` is `True`)
+- Obtains and updates chat, EAS, and EOS tokens
+- Sets up the client user
+
+## Example Usage
+
+### Basic usage
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.RefreshTokenAuth(
+        refresh_token='your-refresh-token-here'
+    )
+)
+
+await client.start()
+```
+
+### Loading from environment variables
+
+```python
+import rebootpy
+import os
+
+client = rebootpy.Client(
+    auth=rebootpy.RefreshTokenAuth(
+        refresh_token=os.getenv('REFRESH_TOKEN')
+    )
+)
+
+await client.start()
+```
+
+### Loading from a file
+
+```python
+import rebootpy
+
+with open('refresh_token.txt', 'r') as f:
+    refresh_token = f.read().strip()
+
+client = rebootpy.Client(
+    auth=rebootpy.RefreshTokenAuth(
+        refresh_token=refresh_token
+    )
+)
+
+await client.start()
+```
+
+## How to Obtain a Refresh Token
+
+Refresh tokens are automatically obtained when you authenticate with other methods. You can access the refresh token after successful authentication:
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your-authorization-code'
+    )
+)
+
+@client.event
+async def event_ready():
+    # Access the refresh token
+    print(f'Refresh Token: {client.auth.ios_refresh_token}')
+    
+    # Save it for future use
+    with open('refresh_token.txt', 'w') as f:
+        f.write(client.auth.ios_refresh_token)
+
+await client.start()
+```
+
+## Token Expiration
+
+Refresh tokens typically expire after a certain period (usually 2 hours by default). The library automatically handles token refreshing during normal operation. However, if the refresh token expires, you'll need to re-authenticate using another method.
+
+## When to Use RefreshTokenAuth
+
+Use `RefreshTokenAuth` when:
+- You have a valid refresh token from a previous session
+- You want to avoid re-authenticating with user interaction
+- You're implementing a session restoration feature
+
+**Don't use** `RefreshTokenAuth` for:
+- Initial authentication (use `DeviceCodeAuth`, `AuthorizationCodeAuth`, or `AdvancedAuth` instead)
+- Long-term credentials storage (use `DeviceAuth` instead)
+
+## Comparison with Other Auth Methods
+
+| Method | Use Case | Persistence |
+|--------|----------|-------------|
+| `RefreshTokenAuth` | Short-term session restoration | 2 hours (typical) |
+| `DeviceAuth` | Long-term automated authentication | Until password reset |
+| `AuthorizationCodeAuth` | Initial user authentication | Single use |
+| `DeviceCodeAuth` | User-friendly interactive login | Single use |
+
+## Error Handling
+
+If the refresh token is invalid or expired, the authentication will fail. The library will raise an `HTTPException` with message code:
+
+```
+errors.com.epicgames.account.auth_token.invalid_refresh_token
+```
+
+In this case, you need to re-authenticate using another method:
+
+```python
+import rebootpy
+from rebootpy.errors import HTTPException
+
+try:
+    client = rebootpy.Client(
+        auth=rebootpy.RefreshTokenAuth(
+            refresh_token=stored_refresh_token
+        )
+    )
+    await client.start()
+except HTTPException as e:
+    if e.message_code == 'errors.com.epicgames.account.auth_token.invalid_refresh_token':
+        print('Refresh token expired. Please re-authenticate.')
+        # Fall back to another auth method
+        client = rebootpy.Client(
+            auth=rebootpy.DeviceCodeAuth()
+        )
+        await client.start()
+```
+
+## Security Considerations
+
+<Warning>
+  Refresh tokens are sensitive credentials. Treat them securely:
+  - Store them encrypted or in secure storage
+  - Don't commit them to version control
+  - Don't share them publicly
+  - Invalidate them when no longer needed
+</Warning>
+
+### Best practices:
+
+1. **Use environment variables** in production
+2. **Encrypt tokens** when storing in files
+3. **Rotate tokens** regularly
+4. **Use DeviceAuth** for long-term storage instead
+
+## Invalidating a Refresh Token
+
+To manually invalidate a refresh token:
+
+```python
+await client.auth.kill_token(client.auth.ios_refresh_token)
+```
+
+To invalidate all other sessions:
+
+```python
+await client.auth.kill_other_sessions()
+```
+
+## Source
+
+View source: [rebootpy/auth.py:781](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L781)

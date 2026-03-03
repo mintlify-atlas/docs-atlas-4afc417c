@@ -1,0 +1,468 @@
+---
+title: Context
+description: Understanding and using the Context object in command handlers
+---
+
+The `Context` object contains information about a command invocation. It's automatically passed as the first parameter to all command functions.
+
+## Basic Usage
+
+```python
+@bot.command()
+async def mycommand(ctx):
+    # ctx is the Context object
+    await ctx.send('Hello!')
+```
+
+In cogs, `ctx` is the second parameter (after `self`):
+
+```python
+class MyCog(commands.Cog):
+    @commands.command()
+    async def mycommand(self, ctx):
+        await ctx.send('Hello from cog!')
+```
+
+## Context Attributes
+
+### Message Information
+
+```python
+@bot.command()
+async def info(ctx):
+    # The message that triggered the command
+    message = ctx.message
+    await ctx.send(f'Content: {message.content}')
+    await ctx.send(f'Created: {message.created_at}')
+```
+
+### Bot Reference
+
+```python
+@bot.command()
+async def botinfo(ctx):
+    # Reference to the bot instance
+    bot = ctx.bot
+    await ctx.send(f'Bot: {bot.user.display_name}')
+    await ctx.send(f'Commands: {len(bot.commands)}')
+```
+
+### Author Information
+
+```python
+@bot.command()
+async def whoami(ctx):
+    # The user who invoked the command
+    author = ctx.author
+    await ctx.send(f'You are: {author.display_name}')
+    await ctx.send(f'ID: {author.id}')
+```
+
+The `author` is either a `Friend` (for DM messages) or `PartyMember` (for party messages).
+
+### Party Information
+
+```python
+@bot.command()
+async def partyinfo(ctx):
+    # The party where the command was used (None if DM)
+    if ctx.party:
+        await ctx.send(f'Party ID: {ctx.party.id}')
+        await ctx.send(f'Members: {len(ctx.party.members)}')
+    else:
+        await ctx.send('Not in a party!')
+```
+
+### Command Information
+
+```python
+@bot.command()
+async def commandinfo(ctx):
+    # The command being invoked
+    cmd = ctx.command
+    await ctx.send(f'Command: {cmd.name}')
+    await ctx.send(f'Qualified: {cmd.qualified_name}')
+    await ctx.send(f'Help: {cmd.help}')
+```
+
+### Prefix Information
+
+```python
+@bot.command()
+async def prefixinfo(ctx):
+    # The prefix used to invoke the command
+    await ctx.send(f'Prefix used: {ctx.prefix}')
+    
+    # The exact command name used (useful for aliases)
+    await ctx.send(f'Invoked with: {ctx.invoked_with}')
+```
+
+## Context Methods
+
+### Sending Messages
+
+```python
+@bot.command()
+async def greet(ctx):
+    # Send to the destination (party or DM)
+    await ctx.send('Hello!')
+```
+
+This sends to the party if the command was used in a party, or to the DM if used in a DM.
+
+### Getting Destination
+
+```python
+@bot.command()
+async def destination(ctx):
+    dest = ctx.get_destination()
+    # dest is either the party or the friend
+    await dest.send('Message to destination')
+```
+
+### Invoking Commands
+
+Manually invoke a command:
+
+```python
+@bot.command()
+async def repeat(ctx):
+    # Invoke another command
+    hello_cmd = bot.get_command('hello')
+    await ctx.invoke(hello_cmd)
+```
+
+### Re-invoking Commands
+
+Re-run the current command:
+
+```python
+@bot.command()
+async def retry(ctx):
+    try:
+        # Command logic
+        await risky_operation()
+    except Exception:
+        # Retry the command
+        await ctx.reinvoke()
+```
+
+**Parameters:**
+- `call_hooks` - Whether to call before/after invoke hooks
+- `restart` - Start from the root command or current position
+
+```python
+await ctx.reinvoke(call_hooks=True, restart=False)
+```
+
+## Context Properties
+
+### Valid Context
+
+```python
+@bot.command()
+async def check(ctx):
+    if ctx.valid:
+        await ctx.send('Valid invocation!')
+```
+
+A context is valid if it has a prefix and a command.
+
+### Cog Reference
+
+```python
+@bot.command()
+async def coginfo(ctx):
+    if ctx.cog:
+        await ctx.send(f'Cog: {ctx.cog.qualified_name}')
+    else:
+        await ctx.send('Not in a cog')
+```
+
+### Friend and Member
+
+```python
+@bot.command()
+async def friendinfo(ctx):
+    # Get Friend object (None if not friends)
+    friend = ctx.friend
+    if friend:
+        await ctx.send(f'Friend: {friend.display_name}')
+    
+    # Get PartyMember object (None if not in same party)
+    member = ctx.member
+    if member:
+        await ctx.send(f'Member: {member.display_name}')
+        await ctx.send(f'Ready: {member.ready}')
+```
+
+### Me (Self)
+
+```python
+@bot.command()
+async def me(ctx):
+    # The bot's user object
+    me = ctx.me
+    if ctx.party:
+        # In a party, returns ClientPartyMember
+        await ctx.send(f'My outfit: {me.outfit}')
+    else:
+        # In DM, returns ClientUser
+        await ctx.send(f'My name: {me.display_name}')
+```
+
+## Subcommands
+
+```python
+@bot.group()
+async def manage(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Use a subcommand!')
+
+@manage.command()
+async def start(ctx):
+    await ctx.send('Starting...')
+
+@manage.command()
+async def stop(ctx):
+    await ctx.send('Stopping...')
+```
+
+### Subcommand Attributes
+
+```python
+@bot.group()
+async def config(ctx):
+    # The subcommand that was invoked
+    if ctx.invoked_subcommand:
+        await ctx.send(f'Running: {ctx.invoked_subcommand.name}')
+    
+    # The string passed to call a subcommand
+    if ctx.subcommand_passed:
+        await ctx.send(f'Passed: {ctx.subcommand_passed}')
+```
+
+## Command Arguments
+
+Access parsed command arguments:
+
+```python
+@bot.command()
+async def echo(ctx, *, message: str):
+    # Access through parameters
+    await ctx.send(message)
+    
+    # Or through ctx.args and ctx.kwargs
+    await ctx.send(f'Args: {ctx.args}')
+    await ctx.send(f'Kwargs: {ctx.kwargs}')
+```
+
+## Command Failure
+
+Check if a command failed:
+
+```python
+@bot.event
+async def event_command_completion(ctx):
+    if ctx.command_failed:
+        await ctx.send('Command failed!')
+    else:
+        await ctx.send('Command succeeded!')
+```
+
+## Help Command Integration
+
+Send help for a command or cog:
+
+```python
+@bot.command()
+async def help_me(ctx):
+    # Show general help
+    await ctx.send_help()
+    
+    # Show help for a specific command
+    await ctx.send_help('ping')
+    
+    # Show help for a cog
+    await ctx.send_help('General')
+    
+    # With pagination
+    await ctx.send_help(page=2)
+```
+
+**Parameters:**
+- `entity` - Command, cog, or string name (optional)
+- `page` - Page number for paginated help (default: 1)
+
+## Custom Context
+
+Create a custom context class:
+
+```python
+class MyContext(commands.Context):
+    async def send(self, content: str):
+        # Add custom behavior
+        content = f'[Bot] {content}'
+        return await super().send(content)
+    
+    async def tick(self):
+        """Helper method to send a checkmark."""
+        await self.send('✓')
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=auth
+)
+
+@bot.event
+async def event_ready():
+    print('Ready!')
+
+# Use custom context
+@bot.command()
+async def test(ctx: MyContext):
+    await ctx.send('Testing')
+    await ctx.tick()
+```
+
+### Getting Custom Context
+
+```python
+message = await bot.wait_for('friend_message')
+ctx = await bot.get_context(message, cls=MyContext)
+if ctx.valid:
+    await bot.invoke(ctx)
+```
+
+## Advanced Context Usage
+
+### Accessing View
+
+The `StringView` used for parsing:
+
+```python
+@bot.command()
+async def viewinfo(ctx):
+    view = ctx.view
+    await ctx.send(f'Index: {view.index}')
+    await ctx.send(f'EOF: {view.eof}')
+```
+
+### Processing Commands Manually
+
+```python
+@bot.event
+async def event_friend_message(message):
+    # Get context
+    ctx = await bot.get_context(message)
+    
+    # Check if valid
+    if not ctx.valid:
+        return
+    
+    # Check if author is banned
+    if ctx.author.id in banned_users:
+        await message.reply('You are banned!')
+        return
+    
+    # Invoke the command
+    await bot.invoke(ctx)
+```
+
+## Context in Error Handlers
+
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    # Access command that failed
+    await ctx.send(f'Error in {ctx.command.name}!')
+    
+    # Access author
+    await ctx.send(f'User: {ctx.author.display_name}')
+    
+    # Send error details
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f'Missing: {error.param.name}')
+    
+    # Return False to print error
+    return False
+```
+
+## Example: Complete Usage
+
+```python
+from rebootpy.ext import commands
+import rebootpy
+
+bot = commands.Bot(command_prefix='!', auth=auth)
+
+@bot.command()
+async def userinfo(ctx):
+    """Display information about the command context."""
+    
+    # Basic info
+    await ctx.send(f'Command: {ctx.command.name}')
+    await ctx.send(f'Prefix: {ctx.prefix}')
+    await ctx.send(f'Invoked with: {ctx.invoked_with}')
+    
+    # Author info
+    await ctx.send(f'Author: {ctx.author.display_name}')
+    await ctx.send(f'Author ID: {ctx.author.id}')
+    
+    # Context location
+    if ctx.party:
+        await ctx.send(f'Party: {ctx.party.id}')
+        await ctx.send(f'Members: {len(ctx.party.members)}')
+    else:
+        await ctx.send('Location: DM')
+    
+    # Bot info
+    await ctx.send(f'Bot: {ctx.bot.user.display_name}')
+    await ctx.send(f'Total commands: {len(ctx.bot.commands)}')
+    
+    # Cog info
+    if ctx.cog:
+        await ctx.send(f'Cog: {ctx.cog.qualified_name}')
+
+@bot.group(invoke_without_command=True)
+async def admin(ctx):
+    """Admin commands."""
+    if ctx.invoked_subcommand is None:
+        # Show available subcommands
+        cmds = [c.name for c in ctx.command.commands]
+        await ctx.send(f'Subcommands: {", ".join(cmds)}')
+
+@admin.command()
+async def reload(ctx, extension: str):
+    """Reload an extension."""
+    try:
+        ctx.bot.reload_extension(extension)
+        await ctx.send(f'Reloaded {extension}')
+    except Exception as e:
+        await ctx.send(f'Error: {e}')
+
+@admin.command()
+async def status(ctx):
+    """Show bot status."""
+    await ctx.send(f'Cogs: {len(ctx.bot.cogs)}')
+    await ctx.send(f'Extensions: {len(ctx.bot.extensions)}')
+    
+    if ctx.party:
+        await ctx.send(f'Party size: {len(ctx.party.members)}')
+
+bot.run()
+```
+
+## Best Practices
+
+1. **Use ctx.send()** - Prefer `ctx.send()` over `message.reply()`
+2. **Check context** - Verify `ctx.party` before accessing party properties
+3. **Access through context** - Use `ctx.bot`, `ctx.author` instead of global variables
+4. **Helper methods** - Add custom methods to context subclasses
+5. **Type hints** - Use type hints for better IDE support
+6. **Error handling** - Access context in error handlers for rich information
+
+## Next Steps
+
+- [Commands Extension](/extensions/commands) - Learn about creating commands
+- [Cogs](/extensions/cogs) - Organize commands with cogs

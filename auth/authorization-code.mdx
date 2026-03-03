@@ -1,0 +1,157 @@
+---
+title: AuthorizationCodeAuth
+description: Authenticate using Epic Games authorization codes
+---
+
+`AuthorizationCodeAuth` authenticates your bot using a one-time authorization code from Epic Games.
+
+## Getting an Authorization Code
+
+1. Log into the Epic Games account [using this link](https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D3f69e56c7649492c8cc29f1af08a8a12%26responseType%3Dcode)
+2. Copy the `authorizationCode` value from the redirectUrl query parameters
+
+![Authorization Code](https://raw.githubusercontent.com/xMistt/rebootpy/main/docs/resources/images/authorization_code.png)
+
+<Note>
+  If you're already logged in and want to change accounts, log out at https://www.epicgames.com first, then log in to the new account and generate a new code.
+</Note>
+
+## Basic Usage
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your_authorization_code_here'
+    )
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+
+bot.run()
+```
+
+## Using a Function to Provide Code
+
+You can pass a function or coroutine that returns the authorization code:
+
+```python
+import rebootpy
+
+def get_auth_code():
+    # Your custom logic to retrieve the code
+    return input('Enter authorization code: ')
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth(
+        code=get_auth_code
+    )
+)
+```
+
+## Using an Async Function
+
+```python
+import rebootpy
+import aiofiles
+
+async def get_auth_code():
+    async with aiofiles.open('auth_code.txt', 'r') as f:
+        return await f.read()
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth(
+        code=get_auth_code
+    )
+)
+```
+
+## Parameters
+
+<ParamField path="code" type="Union[str, Callable, Awaitable]" required>
+  The authorization code or a function/coroutine that when called returns the authorization code.
+</ParamField>
+
+<ParamField path="device_id" type="str" default="auto-generated">
+  A 32 character hex string representing your device. If not provided, one will be automatically generated.
+</ParamField>
+
+<ParamField path="ios_token" type="str" default="auto">
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+<ParamField path="token_type" type="str" default="eg1">
+  The token type to use. It's recommended you only change this if you know what you're doing, as certain functions/API calls may start causing errors.
+</ParamField>
+
+## Attributes
+
+<ParamField path="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ParamField>
+
+<ParamField path="account_id" type="str">
+  The account ID of the authenticated user.
+</ParamField>
+
+<ParamField path="resolved_code" type="str">
+  The resolved authorization code after calling any provided callable.
+</ParamField>
+
+## Important Notes
+
+<Warning>
+  An authorization code only works for a single login within a short timeframe (300 seconds). You need to get a new code for each login by refreshing the authorization URL.
+</Warning>
+
+- Authorization codes expire after 5 minutes
+- Each code can only be used once
+- Not recommended for production use (use [DeviceAuth](/auth/device-auth) instead)
+- Best suited for testing and development
+
+## Common Errors
+
+### Invalid Authorization Code
+
+If you receive an `AuthException` with the message "Invalid authorization code supplied", the code has either:
+- Already been used
+- Expired (older than 5 minutes)
+- Been copied incorrectly
+
+Generate a new code and try again.
+
+## Migration to DeviceAuth
+
+For production bots, it's recommended to use [DeviceAuth](/auth/device-auth) instead. You can easily generate device auth credentials:
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your_code'
+    )
+)
+
+@bot.event
+async def event_ready():
+    # Generate device auth for future use
+    device_auth = await bot.auth.generate_device_auth()
+    print('Device ID:', device_auth['deviceId'])
+    print('Account ID:', device_auth['accountId'])
+    print('Secret:', device_auth['secret'])
+    # Store these values securely!
+
+bot.run()
+```
+
+See [AdvancedAuth](/auth/advanced) for automatic device auth generation.

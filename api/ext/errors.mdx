@@ -1,0 +1,386 @@
+---
+title: "Errors"
+description: "Exception classes for the commands extension"
+---
+
+All command-related exceptions inherit from `CommandError`, which itself inherits from `rebootpy.FortniteException`. These exceptions are handled in a special way as they are caught and passed into the `event_command_error` event.
+
+## Base Exceptions
+
+### CommandError
+
+```python
+class CommandError(FortniteException)
+```
+
+The base exception type for all command related errors.
+
+This exception and exceptions inherited from it are handled in a special way as they are caught and passed into a special event from `Bot`, `event_command_error`.
+
+---
+
+## User Input Errors
+
+### UserInputError
+
+```python
+class UserInputError(CommandError)
+```
+
+The base exception type for errors that involve errors regarding user input.
+
+### CommandNotFound
+
+```python
+class CommandNotFound(CommandError)
+```
+
+Exception raised when a command is attempted to be invoked but no command under that name is found.
+
+This is not raised for invalid subcommands, rather just the initial main command that is attempted to be invoked.
+
+### MissingRequiredArgument
+
+```python
+class MissingRequiredArgument(UserInputError)
+```
+
+Exception raised when parsing a command and a parameter that is required is not encountered.
+
+**Attributes:**
+- `param` (inspect.Parameter): The argument that is missing.
+
+### TooManyArguments
+
+```python
+class TooManyArguments(UserInputError)
+```
+
+Exception raised when the command was passed too many arguments and its `Command.ignore_extra` attribute was not set to `True`.
+
+### BadArgument
+
+```python
+class BadArgument(UserInputError)
+```
+
+Exception raised when a parsing or conversion failure is encountered on an argument to pass into a command.
+
+**Example:**
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send(f'Invalid argument: {error}')
+```
+
+### BadUnionArgument
+
+```python
+class BadUnionArgument(UserInputError)
+```
+
+Exception raised when a `typing.Union` converter fails for all its associated types.
+
+**Attributes:**
+- `param` (inspect.Parameter): The parameter that failed being converted.
+- `converters` (Tuple[Type, ...]): A tuple of converters attempted in conversion, in order of failure.
+- `errors` (List[CommandError]): A list of errors that were caught from failing the conversion.
+
+---
+
+## Check Failures
+
+### CheckFailure
+
+```python
+class CheckFailure(UserInputError)
+```
+
+Exception raised when the predicates in `Command.checks` have failed.
+
+### CheckAnyFailure
+
+```python
+class CheckAnyFailure(CheckFailure)
+```
+
+Exception raised when all predicates in `check_any()` fail.
+
+**Attributes:**
+- `errors` (List[CheckFailure]): A list of errors that were caught during execution.
+- `checks` (List[Callable[[Context], bool]]): A list of check predicates that failed.
+
+### PrivateMessageOnly
+
+```python
+class PrivateMessageOnly(CheckFailure)
+```
+
+Exception raised when an operation does not work outside of private message contexts.
+
+This is raised by the `@dm_only()` decorator.
+
+### PartyMessageOnly
+
+```python
+class PartyMessageOnly(CheckFailure)
+```
+
+Exception raised when an operation does not work outside of party message contexts.
+
+This is raised by the `@party_only()` decorator.
+
+### NotOwner
+
+```python
+class NotOwner(CheckFailure)
+```
+
+Exception raised when the message author is not the owner of the bot.
+
+This is raised by the `@is_owner()` decorator.
+
+---
+
+## Command Execution Errors
+
+### DisabledCommand
+
+```python
+class DisabledCommand(CommandError)
+```
+
+Exception raised when the command being invoked is disabled.
+
+### CommandInvokeError
+
+```python
+class CommandInvokeError(CommandError)
+```
+
+Exception raised when the command being invoked raised an exception.
+
+**Attributes:**
+- `original` (Exception): The original exception that was raised. You can also get this via the `__cause__` attribute.
+
+**Example:**
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.CommandInvokeError):
+        await ctx.send(f'Command failed: {error.original}')
+```
+
+### CommandOnCooldown
+
+```python
+class CommandOnCooldown(CommandError)
+```
+
+Exception raised when the command being invoked is on cooldown.
+
+**Attributes:**
+- `cooldown` (Cooldown): A class with attributes `rate`, `per`, and `type` similar to the `@cooldown` decorator.
+- `retry_after` (float): The amount of seconds to wait before you can retry again.
+
+**Example:**
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f'Command on cooldown. Retry in {error.retry_after:.2f}s')
+```
+
+### MaxConcurrencyReached
+
+```python
+class MaxConcurrencyReached(CommandError)
+```
+
+Exception raised when the command being invoked has reached its maximum concurrency.
+
+**Attributes:**
+- `number` (int): The maximum number of concurrent invokers allowed.
+- `per` (BucketType): The bucket type passed to the `@max_concurrency` decorator.
+
+---
+
+## Conversion Errors
+
+### ConversionError
+
+```python
+class ConversionError(CommandError)
+```
+
+Exception raised when a Converter class raises non-CommandError.
+
+**Attributes:**
+- `converter` (rebootpy.ext.commands.Converter): The converter that failed.
+- `original` (Exception): The original exception that was raised. You can also get this via the `__cause__` attribute.
+
+---
+
+## Argument Parsing Errors
+
+### ArgumentParsingError
+
+```python
+class ArgumentParsingError(UserInputError)
+```
+
+An exception raised when the parser fails to parse a user's input.
+
+There are child classes that implement more granular parsing errors.
+
+### UnexpectedQuoteError
+
+```python
+class UnexpectedQuoteError(ArgumentParsingError)
+```
+
+An exception raised when the parser encounters a quote mark inside a non-quoted string.
+
+**Attributes:**
+- `quote` (str): The quote mark that was found inside the non-quoted string.
+
+### InvalidEndOfQuotedStringError
+
+```python
+class InvalidEndOfQuotedStringError(ArgumentParsingError)
+```
+
+An exception raised when a space is expected after the closing quote in a string but a different character is found.
+
+**Attributes:**
+- `char` (str): The character found instead of the expected string.
+
+### ExpectedClosingQuoteError
+
+```python
+class ExpectedClosingQuoteError(ArgumentParsingError)
+```
+
+An exception raised when a quote character is expected but not found.
+
+**Attributes:**
+- `close_quote` (str): The quote character expected.
+
+---
+
+## Extension Errors
+
+### ExtensionError
+
+```python
+class ExtensionError(FortniteException)
+```
+
+Base exception for extension related errors.
+
+**Attributes:**
+- `name` (str): The extension that had an error.
+
+### ExtensionAlreadyLoaded
+
+```python
+class ExtensionAlreadyLoaded(ExtensionError)
+```
+
+An exception raised when an extension has already been loaded.
+
+### ExtensionNotLoaded
+
+```python
+class ExtensionNotLoaded(ExtensionError)
+```
+
+An exception raised when an extension was not loaded.
+
+### ExtensionMissingEntryPoint
+
+```python
+class ExtensionMissingEntryPoint(ExtensionError)
+```
+
+An exception raised when an extension does not have a `extension_setup` entry point function.
+
+### ExtensionFailed
+
+```python
+class ExtensionFailed(ExtensionError)
+```
+
+An exception raised when an extension failed to load during execution of the module or `extension_setup` entry point.
+
+**Attributes:**
+- `name` (str): The extension that had the error.
+- `original` (Exception): The original exception that was raised. You can also get this via the `__cause__` attribute.
+
+### ExtensionNotFound
+
+```python
+class ExtensionNotFound(ExtensionError)
+```
+
+An exception raised when an extension is not found.
+
+**Attributes:**
+- `name` (str): The extension that had the error.
+
+---
+
+## Error Handling Example
+
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    """Global error handler for all commands"""
+    
+    # Ignore commands with local error handlers
+    if hasattr(ctx.command, 'error_handler'):
+        return
+    
+    # Get the original exception if it's wrapped
+    error = getattr(error, 'original', error)
+    
+    # Handle specific errors
+    if isinstance(error, commands.CommandNotFound):
+        return  # Silently ignore
+    
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f'Missing required argument: {error.param.name}')
+    
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send(f'Bad argument: {error}')
+    
+    elif isinstance(error, commands.CheckFailure):
+        await ctx.send('You do not have permission to use this command.')
+    
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f'This command is on cooldown. Try again in {error.retry_after:.1f}s')
+    
+    elif isinstance(error, commands.DisabledCommand):
+        await ctx.send('This command is disabled.')
+    
+    else:
+        # Log unexpected errors
+        print(f'Unexpected error: {error}')
+        await ctx.send('An error occurred while executing the command.')
+
+# Command-specific error handler
+@bot.command()
+async def divide(ctx, a: int, b: int):
+    """Divides two numbers"""
+    result = a / b
+    await ctx.send(f'{a} / {b} = {result}')
+
+@divide.error
+async def divide_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send('Please provide valid integers.')
+    elif isinstance(error, commands.CommandInvokeError):
+        if isinstance(error.original, ZeroDivisionError):
+            await ctx.send('Cannot divide by zero!')
+```

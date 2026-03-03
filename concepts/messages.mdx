@@ -1,0 +1,499 @@
+---
+title: 'Messaging System'
+description: 'Sending and receiving friend and party messages'
+---
+
+## Overview
+
+rebootpy supports two types of messages:
+- **Friend Messages** - Direct messages between friends
+- **Party Messages** - Messages in party chat
+
+Both message types share similar functionality but have different contexts.
+
+## Message Classes
+
+### FriendMessage
+
+Represents a message from a friend.
+
+**Attributes:**
+- `client` - The client instance
+- `author` - The Friend who sent the message
+- `content` - The message text (up to 256 characters)
+- `created_at` - When the message was received (UTC datetime)
+
+### PartyMessage
+
+Represents a message in party chat.
+
+**Attributes:**
+- `client` - The client instance
+- `author` - The PartyMember who sent the message
+- `content` - The message text (up to 256 characters)
+- `party` - The ClientParty where the message was sent
+- `created_at` - When the message was received (UTC datetime)
+
+## Receiving Messages
+
+### Friend Messages
+
+```python
+@client.event
+async def event_friend_message(message):
+    print(f'{message.author.display_name}: {message.content}')
+    print(f'Received at: {message.created_at}')
+```
+
+### Party Messages
+
+```python
+@client.event
+async def event_party_message(message):
+    print(f'[Party] {message.author.display_name}: {message.content}')
+    print(f'Party ID: {message.party.id}')
+```
+
+## Sending Messages
+
+### Send to Friend
+
+```python
+# Method 1: Using Friend object
+friend = client.get_friend('user-id')
+await friend.send('Hello!')
+
+# Method 2: Using client.http
+await client.http.friend_send_message('user-id', 'Hello!')
+```
+
+### Send to Party
+
+```python
+# Send message to current party
+await client.party.send('Hello everyone!')
+```
+
+### Replying to Messages
+
+```python
+@client.event
+async def event_friend_message(message):
+    # Reply to friend message
+    await message.reply('Thanks for your message!')
+
+@client.event
+async def event_party_message(message):
+    # Reply in party chat
+    if message.author.id != client.user.id:
+        await message.reply(f'You said: {message.content}')
+```
+
+## Message Length Limit
+
+Messages are limited to **256 characters**. Longer messages will raise an error:
+
+```python
+from rebootpy.errors import ChatError
+
+@client.event
+async def event_friend_message(message):
+    try:
+        long_message = 'A' * 300  # Too long!
+        await message.reply(long_message)
+    except ChatError as e:
+        print(f'Message too long: {e}')
+        await message.reply('My response was too long!')
+```
+
+## Command Patterns
+
+### Simple Command Handler
+
+```python
+@client.event
+async def event_friend_message(message):
+    # Ignore messages from self
+    if message.author.id == client.user.id:
+        return
+    
+    content = message.content.lower()
+    
+    if content == '!hello':
+        await message.reply('Hello!')
+    elif content == '!stats':
+        stats = await client.fetch_br_stats(message.author.id)
+        await message.reply(f'Wins: {stats.total_wins}')
+    elif content == '!help':
+        await message.reply('Commands: !hello, !stats, !help')
+```
+
+### Command with Arguments
+
+```python
+@client.event
+async def event_friend_message(message):
+    if not message.content.startswith('!'):
+        return
+    
+    parts = message.content.split()
+    command = parts[0][1:].lower()  # Remove '!' prefix
+    args = parts[1:]
+    
+    if command == 'user':
+        if not args:
+            await message.reply('Usage: !user <name>')
+            return
+        
+        username = ' '.join(args)
+        user = await client.fetch_user(username)
+        
+        if user:
+            await message.reply(f'Found: {user.display_name} ({user.id})')
+        else:
+            await message.reply('User not found')
+    
+    elif command == 'invite':
+        await client.party.invite(message.author.id)
+        await message.reply('Party invite sent!')
+```
+
+### Party Command Handler
+
+```python
+@client.event
+async def event_party_message(message):
+    # Ignore own messages
+    if message.author.id == client.user.id:
+        return
+    
+    content = message.content.lower()
+    
+    if content == '!ready':
+        await client.party.me.set_ready(rebootpy.ReadyState.READY)
+        await message.reply('Ready!')
+    
+    elif content == '!privacy public':
+        if client.party.me.leader:
+            await client.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+            await message.reply('Party is now public')
+        else:
+            await message.reply('I\'m not the leader!')
+```
+
+## Conversation Flow
+
+### Ask and Wait for Response
+
+```python
+import asyncio
+
+@client.event
+async def event_friend_message(message):
+    if message.content.lower() == '!quiz':
+        await message.reply('What is 2 + 2?')
+        
+        def check(m):
+            return m.author.id == message.author.id
+        
+        try:
+            response = await client.wait_for(
+                'friend_message',
+                check=check,
+                timeout=30
+            )
+            
+            if response.content == '4':
+                await response.reply('Correct!')
+            else:
+                await response.reply('Wrong! The answer is 4')
+        
+        except asyncio.TimeoutError:
+            await message.reply('You took too long!')
+```
+
+### Multi-step Conversation
+
+```python
+@client.event
+async def event_friend_message(message):
+    if message.content.lower() == '!setup':
+        author = message.author
+        
+        def check(m):
+            return m.author.id == author.id
+        
+        try:
+            # Step 1: Ask for name
+            await message.reply('What is your name?')
+            name_msg = await client.wait_for('friend_message', check=check, timeout=60)
+            name = name_msg.content
+            
+            # Step 2: Ask for age
+            await name_msg.reply(f'Nice to meet you, {name}! How old are you?')
+            age_msg = await client.wait_for('friend_message', check=check, timeout=60)
+            age = age_msg.content
+            
+            # Done
+            await age_msg.reply(f'Setup complete! Name: {name}, Age: {age}')
+        
+        except asyncio.TimeoutError:
+            await message.reply('Setup cancelled (timeout)')
+```
+
+## Message Filtering
+
+### Ignore Bot Messages
+
+```python
+@client.event
+async def event_friend_message(message):
+    # Don't respond to own messages
+    if message.author.id == client.user.id:
+        return
+    
+    await message.reply('I got your message!')
+```
+
+### Whitelist System
+
+```python
+ALLOWED_USERS = ['user-id-1', 'user-id-2', 'user-id-3']
+
+@client.event
+async def event_friend_message(message):
+    if message.author.id not in ALLOWED_USERS:
+        return  # Ignore messages from non-whitelisted users
+    
+    # Process message
+    await message.reply('Command received!')
+```
+
+### Spam Protection
+
+```python
+import time
+from collections import defaultdict
+
+message_counts = defaultdict(list)
+SPAM_THRESHOLD = 5  # messages
+SPAM_WINDOW = 10    # seconds
+
+@client.event
+async def event_friend_message(message):
+    user_id = message.author.id
+    current_time = time.time()
+    
+    # Clean old timestamps
+    message_counts[user_id] = [
+        t for t in message_counts[user_id]
+        if current_time - t < SPAM_WINDOW
+    ]
+    
+    # Check spam
+    if len(message_counts[user_id]) >= SPAM_THRESHOLD:
+        await message.reply('You\'re sending messages too fast!')
+        return
+    
+    # Add current message timestamp
+    message_counts[user_id].append(current_time)
+    
+    # Process message normally
+    await message.reply('Message received')
+```
+
+## Auto-responder Patterns
+
+### Keyword Auto-response
+
+```python
+RESPONSES = {
+    'hello': 'Hi there!',
+    'help': 'I can help you with commands. Type !commands',
+    'thanks': 'You\'re welcome!',
+    'bye': 'Goodbye!'
+}
+
+@client.event
+async def event_friend_message(message):
+    content = message.content.lower()
+    
+    for keyword, response in RESPONSES.items():
+        if keyword in content:
+            await message.reply(response)
+            return
+```
+
+### Away Message
+
+```python
+AWAY_MODE = True
+AWAY_MESSAGE = 'I\'m currently away. I\'ll respond when I\'m back!'
+
+@client.event
+async def event_friend_message(message):
+    if AWAY_MODE and message.author.id != client.user.id:
+        await message.reply(AWAY_MESSAGE)
+```
+
+### Auto-forward Messages
+
+```python
+FORWARD_TO = 'admin-user-id'
+
+@client.event
+async def event_friend_message(message):
+    # Forward all messages to admin
+    admin = client.get_friend(FORWARD_TO)
+    if admin and message.author.id != FORWARD_TO:
+        await admin.send(
+            f'Message from {message.author.display_name}: {message.content}'
+        )
+```
+
+## Message Logging
+
+### Simple Logger
+
+```python
+import datetime
+
+@client.event
+async def event_friend_message(message):
+    timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    log_entry = f'[{timestamp}] {message.author.display_name}: {message.content}'
+    
+    # Log to file
+    with open('messages.log', 'a', encoding='utf-8') as f:
+        f.write(log_entry + '\n')
+    
+    # Also log party messages
+
+@client.event
+async def event_party_message(message):
+    timestamp = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+    log_entry = f'[{timestamp}] [Party] {message.author.display_name}: {message.content}'
+    
+    with open('messages.log', 'a', encoding='utf-8') as f:
+        f.write(log_entry + '\n')
+```
+
+### Database Logging
+
+```python
+@client.event
+async def event_friend_message(message):
+    await save_to_database(
+        message_type='friend',
+        author_id=message.author.id,
+        author_name=message.author.display_name,
+        content=message.content,
+        timestamp=message.created_at
+    )
+```
+
+## Party Chat Management
+
+### Announce Member Joins
+
+```python
+@client.event
+async def event_party_member_join(member):
+    if member.id != client.user.id:
+        await client.party.send(f'Welcome {member.display_name}!')
+```
+
+### Party Chat Commands
+
+```python
+@client.event
+async def event_party_message(message):
+    if message.author.id == client.user.id:
+        return
+    
+    content = message.content.lower()
+    
+    if content == '!members':
+        members = ', '.join(m.display_name for m in client.party.members)
+        await message.reply(f'Members: {members}')
+    
+    elif content == '!count':
+        count = client.party.member_count
+        max_size = client.party.max_size
+        await message.reply(f'{count}/{max_size} members')
+    
+    elif content == '!leader':
+        leader = client.party.leader
+        await message.reply(f'Leader: {leader.display_name}')
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check message length" icon="ruler">
+    Always ensure messages are under 256 characters
+  </Card>
+  <Card title="Ignore own messages" icon="ban">
+    Filter out `message.author.id == client.user.id` to avoid loops
+  </Card>
+  <Card title="Use timeouts" icon="clock">
+    When using `wait_for()`, always set a timeout
+  </Card>
+  <Card title="Handle errors gracefully" icon="shield-check">
+    Catch `ChatError` and other exceptions
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+### Message Loops
+
+Avoid infinite loops by not replying to own messages:
+
+```python
+# Bad - Creates infinite loop
+@client.event
+async def event_friend_message(message):
+    await message.reply('Echo!')  # Bot replies to its own messages!
+
+# Good - Ignores own messages
+@client.event
+async def event_friend_message(message):
+    if message.author.id == client.user.id:
+        return
+    await message.reply('Echo!')
+```
+
+### Message Too Long
+
+Split long messages:
+
+```python
+def split_message(text, max_length=256):
+    """Split message into chunks"""
+    return [text[i:i+max_length] for i in range(0, len(text), max_length)]
+
+@client.event
+async def event_friend_message(message):
+    response = 'A' * 500  # Very long message
+    
+    for chunk in split_message(response):
+        await message.reply(chunk)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Friends" href="/concepts/friends" icon="users">
+    Learn about friend management
+  </Card>
+  <Card title="Parties" href="/concepts/parties" icon="people-group">
+    Understand party chat context
+  </Card>
+  <Card title="Events" href="/concepts/events" icon="bolt">
+    Handle message events
+  </Card>
+  <Card title="Commands Extension" href="/guides/commands" icon="terminal">
+    Use the commands extension for advanced command handling
+  </Card>
+</CardGroup>

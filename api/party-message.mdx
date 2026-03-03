@@ -1,0 +1,65 @@
+---
+title: PartyMessage
+description: API reference for the PartyMessage class
+---
+
+## PartyMessage
+
+Represents a message sent in a party.
+
+### Properties
+
+#### client
+
+**Type:** `Client`
+
+The client instance.
+
+#### party
+
+**Type:** `ClientParty`
+
+The party where the message was sent.
+
+#### author
+
+**Type:** `PartyMember`
+
+The author of the message.
+
+#### content
+
+**Type:** `str`
+
+The content of the message.
+
+#### created_at
+
+**Type:** `datetime.datetime`
+
+The time when this message was received in UTC.
+
+### Methods
+
+#### reply
+
+```python
+await reply(content: str) -> None
+```
+
+Replies to the message with the given content.
+
+**Parameters:**
+- `content` (str) - The content of the message, up to 256 characters.
+
+**Raises:**
+- `ChatError` - Content is longer than 256 characters or the client is in a party on its own.
+
+**Example:**
+
+```python
+@client.event
+async def event_party_message(message):
+    if message.content.lower() == 'ready?':
+        await message.reply('Yes!')
+```

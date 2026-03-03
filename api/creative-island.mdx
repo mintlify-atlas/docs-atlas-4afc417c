@@ -1,0 +1,159 @@
+---
+title: CreativeIsland
+description: API reference for the CreativeIsland class
+---
+
+## CreativeIsland
+
+Represents a Fortnite Creative island.
+
+### Properties
+
+#### client
+
+**Type:** `Client`
+
+The client instance.
+
+#### creator_name
+
+**Type:** `str`
+
+The name of the island creator.
+
+#### creator_account_id
+
+**Type:** `str`
+
+The account id of the island creator.
+
+#### mnemonic
+
+**Type:** `str`
+
+The mnemonic of the island, either being island code or playlist id.
+
+#### name
+
+**Type:** `str`
+
+The name of the island.
+
+#### image_url
+
+**Type:** `str`
+
+The image URL of the island.
+
+#### version
+
+**Type:** `int`
+
+The current iteration of the island.
+
+#### active
+
+**Type:** `bool`
+
+Whether or not the island is active.
+
+#### created
+
+**Type:** `datetime.datetime`
+
+The UTC time the island was created.
+
+#### published
+
+**Type:** `datetime.datetime`
+
+The UTC time the island was published.
+
+#### description_tags
+
+**Type:** `list`
+
+List of description tags.
+
+#### lobby_background_image
+
+**Type:** `str`
+
+The image URL of the lobby background. If none, Fortnite will use the default.
+
+#### creator_sac_slug
+
+**Type:** `str`
+
+The Support-a-Creator slug of the island creator.
+
+#### tagline
+
+**Type:** `str`
+
+The tagline of the island.
+
+#### ratings
+
+**Type:** `List[CreativeIslandRating]`
+
+A list containing data about all age ratings for the island.
+
+#### is_creative_island
+
+**Type:** `bool`
+
+Returns `True` if the island is a creative map, `False` if it is a playlist.
+
+### Example
+
+```python
+island = await client.fetch_island('1234-5678-9012')
+print(f"Island: {island.name}")
+print(f"Creator: {island.creator_name}")
+print(f"Code: {island.mnemonic}")
+print(f"Published: {island.published}")
+print(f"Tagline: {island.tagline}")
+print(f"Is creative map: {island.is_creative_island}")
+
+for rating in island.ratings:
+    print(f"{rating.board}: {rating.rating}")
+```
+
+---
+
+## CreativeIslandRating
+
+Represents an age rating for a Creative island.
+
+### Properties
+
+#### board
+
+**Type:** `str`
+
+The name of the board of which the rating is from.
+
+#### descriptors
+
+**Type:** `str`
+
+Rating descriptors of the island.
+
+#### rating
+
+**Type:** `str`
+
+The rating of the island.
+
+#### initial_rating
+
+**Type:** `str`
+
+The initial rating of the island.
+
+#### interactive_elements
+
+**Type:** `str`
+
+Interactive elements of the island.

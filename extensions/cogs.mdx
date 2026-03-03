@@ -1,0 +1,405 @@
+---
+title: Cogs
+description: Using cogs to organize commands into modular components
+---
+
+Cogs are classes that organize commands, event listeners, and state into modular components. They help structure larger bots by grouping related functionality.
+
+## Creating a Cog
+
+Cogs inherit from `commands.Cog`:
+
+```python
+from rebootpy.ext import commands
+
+class General(commands.Cog):
+    """General purpose commands."""
+    
+    @commands.command()
+    async def hello(self, ctx):
+        """Says hello."""
+        await ctx.send('Hello from a cog!')
+    
+    @commands.command()
+    async def goodbye(self, ctx):
+        """Says goodbye."""
+        await ctx.send('Goodbye!')
+```
+
+Notice that cog commands have `self` as the first parameter, followed by `ctx`.
+
+## Adding Cogs to the Bot
+
+```python
+bot = commands.Bot(command_prefix='!', auth=auth)
+
+# Add the cog
+bot.add_cog(General())
+
+bot.run()
+```
+
+## Cog Attributes
+
+Customize cog behavior with metaclass attributes:
+
+```python
+class Admin(commands.Cog, name='Administration'):
+    """Admin commands."""
+    pass
+```
+
+### Command Attributes
+
+Apply default attributes to all commands in the cog:
+
+```python
+class SecretCommands(commands.Cog, command_attrs=dict(hidden=True)):
+    """All commands in this cog are hidden."""
+    
+    @commands.command()
+    async def secret1(self, ctx):
+        await ctx.send('Hidden command 1')
+    
+    @commands.command(hidden=False)  # Override cog default
+    async def visible(self, ctx):
+        await ctx.send('This one is visible!')
+```
+
+## Cog State
+
+Cogs can maintain state:
+
+```python
+class Stats(commands.Cog):
+    def __init__(self):
+        self.command_count = 0
+    
+    @commands.command()
+    async def stats(self, ctx):
+        await ctx.send(f'Commands used: {self.command_count}')
+    
+    @commands.Cog.event()
+    async def event_command_completion(ctx):
+        self.command_count += 1
+```
+
+## Cog Events
+
+Register event handlers within cogs:
+
+```python
+class Events(commands.Cog):
+    @commands.Cog.event()
+    async def event_friend_message(self, message):
+        """Handler uses the function name to determine event."""
+        print(f'Message from {message.author}: {message.content}')
+    
+    @commands.Cog.event('party_member_join')
+    async def on_member_join(self, member):
+        """Handler uses explicit event name."""
+        print(f'{member.display_name} joined the party')
+```
+
+## Command Groups in Cogs
+
+```python
+class Party(commands.Cog):
+    @commands.group()
+    async def party(self, ctx):
+        """Party management."""
+        if ctx.invoked_subcommand is None:
+            await ctx.send('Use a subcommand!')
+    
+    @party.command()
+    async def join(self, ctx):
+        await ctx.send('Joining...')
+    
+    @party.command()
+    async def leave(self, ctx):
+        await ctx.send('Leaving...')
+```
+
+## Cog Checks
+
+Apply checks to all commands in a cog:
+
+```python
+class AdminCog(commands.Cog):
+    async def cog_check(self, ctx):
+        """Check that runs for all commands in this cog."""
+        return await ctx.bot.is_owner(ctx.author.id)
+    
+    @commands.command()
+    async def restart(self, ctx):
+        await ctx.send('Restarting...')
+    
+    @commands.command()
+    async def shutdown(self, ctx):
+        await ctx.send('Shutting down...')
+```
+
+## Bot-Level Checks
+
+Cogs can add bot-level checks:
+
+```python
+class Security(commands.Cog):
+    def bot_check(self, ctx):
+        """Check that runs for ALL bot commands."""
+        return ctx.author.id not in self.banned_users
+    
+    def bot_check_once(self, ctx):
+        """Check that runs once per command invocation."""
+        return ctx.author.id in self.whitelist
+```
+
+## Cog Hooks
+
+Run code before/after command invocation:
+
+```python
+class Logger(commands.Cog):
+    async def cog_before_invoke(self, ctx):
+        """Runs before any command in this cog."""
+        print(f'Command {ctx.command} started')
+    
+    async def cog_after_invoke(self, ctx):
+        """Runs after any command in this cog."""
+        print(f'Command {ctx.command} finished')
+    
+    @commands.command()
+    async def log(self, ctx, *, message):
+        await ctx.send(f'Logged: {message}')
+```
+
+## Error Handling in Cogs
+
+Handle errors for all cog commands:
+
+```python
+class Math(commands.Cog):
+    @commands.command()
+    async def divide(self, ctx, a: int, b: int):
+        result = a / b
+        await ctx.send(f'{a} / {b} = {result}')
+    
+    @commands.command()
+    async def sqrt(self, ctx, n: int):
+        result = n ** 0.5
+        await ctx.send(f'√{n} = {result}')
+    
+    async def cog_command_error(self, ctx, error):
+        """Error handler for this cog."""
+        if isinstance(error, commands.CommandInvokeError):
+            error = error.original
+        
+        if isinstance(error, ZeroDivisionError):
+            await ctx.send('Cannot divide by zero!')
+            return True  # Error handled
+        elif isinstance(error, ValueError):
+            await ctx.send('Invalid value!')
+            return True
+        
+        return False  # Not handled, propagate
+```
+
+## Cog Lifecycle
+
+### Cleanup on Unload
+
+```python
+class Database(commands.Cog):
+    def __init__(self):
+        self.db = connect_to_database()
+    
+    def cog_unload(self):
+        """Called when cog is removed from bot."""
+        self.db.close()
+        print('Database connection closed')
+    
+    @commands.command()
+    async def query(self, ctx, *, sql):
+        result = self.db.execute(sql)
+        await ctx.send(f'Result: {result}')
+```
+
+## Managing Cogs
+
+### Adding Cogs
+
+```python
+# Add a cog instance
+bot.add_cog(General())
+
+# Add multiple cogs
+bot.add_cog(Admin())
+bot.add_cog(Stats())
+```
+
+### Removing Cogs
+
+```python
+# Remove by cog name
+bot.remove_cog('General')
+bot.remove_cog('Administration')  # Uses the custom name
+```
+
+### Getting Cogs
+
+```python
+# Get a specific cog
+cog = bot.get_cog('General')
+if cog:
+    print(f'Found cog: {cog.qualified_name}')
+
+# Get all cogs
+for name, cog in bot.cogs.items():
+    print(f'{name}: {cog.description}')
+```
+
+## Cog Extensions
+
+Cogs work well with extensions:
+
+**extensions/general.py:**
+```python
+from rebootpy.ext import commands
+
+class General(commands.Cog):
+    @commands.command()
+    async def ping(self, ctx):
+        await ctx.send('Pong!')
+
+def extension_setup(bot):
+    bot.add_cog(General())
+
+def cog_teardown(bot):
+    """Optional cleanup function."""
+    print('General cog unloaded')
+```
+
+**bot.py:**
+```python
+bot = commands.Bot(command_prefix='!', auth=auth)
+
+# Load extension (which adds the cog)
+bot.load_extension('extensions.general')
+
+bot.run()
+```
+
+## Accessing the Bot
+
+The bot instance is not directly available in cogs, but you can access it through context:
+
+```python
+class Info(commands.Cog):
+    @commands.command()
+    async def botinfo(self, ctx):
+        bot = ctx.bot
+        await ctx.send(f'Bot: {bot.user.display_name}')
+        await ctx.send(f'Commands: {len(bot.commands)}')
+        await ctx.send(f'Cogs: {len(bot.cogs)}')
+```
+
+## Cog Properties
+
+```python
+class MyCog(commands.Cog):
+    @property
+    def qualified_name(self) -> str:
+        """The cog's name."""
+        return self.__cog_name__
+    
+    @property
+    def description(self) -> str:
+        """The cog's description (from docstring)."""
+        return self.__doc__
+    
+    def get_commands(self):
+        """Get all top-level commands (no subcommands)."""
+        return [c for c in self.__cog_commands__ if c.parent is None]
+    
+    def walk_commands(self):
+        """Iterate through all commands and subcommands."""
+        for command in self.__cog_commands__:
+            if command.parent is None:
+                yield command
+                if isinstance(command, commands.GroupMixin):
+                    yield from command.walk_commands()
+    
+    @property
+    def event_handlers(self):
+        """Get all event handlers."""
+        return self.__cog_event_handlers__
+```
+
+## Example: Complete Cog
+
+```python
+from rebootpy.ext import commands
+
+class Moderation(commands.Cog, name='Mod Tools'):
+    """Moderation commands for party management."""
+    
+    def __init__(self):
+        self.action_log = []
+    
+    async def cog_check(self, ctx):
+        """Only party leaders can use these commands."""
+        return ctx.party and ctx.author.leader
+    
+    async def cog_before_invoke(self, ctx):
+        """Log all moderation actions."""
+        self.action_log.append({
+            'user': ctx.author.id,
+            'command': ctx.command.name,
+            'time': ctx.message.created_at
+        })
+    
+    @commands.command()
+    async def kick(self, ctx, member_name: str):
+        """Kick a member from the party."""
+        await ctx.send(f'Kicking {member_name}...')
+        # Kick logic here
+    
+    @commands.command()
+    async def promote(self, ctx, member_name: str):
+        """Promote a member to party leader."""
+        await ctx.send(f'Promoting {member_name}...')
+        # Promote logic here
+    
+    @commands.command()
+    async def logs(self, ctx):
+        """View moderation logs."""
+        await ctx.send(f'Total actions: {len(self.action_log)}')
+    
+    async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.CheckFailure):
+            await ctx.send('You must be party leader to use this!')
+            return True
+        return False
+    
+    def cog_unload(self):
+        """Save logs before unloading."""
+        print(f'Saving {len(self.action_log)} log entries...')
+
+def extension_setup(bot):
+    bot.add_cog(Moderation())
+```
+
+## Best Practices
+
+1. **Group related functionality** - Put related commands in the same cog
+2. **Use descriptive names** - Name cogs clearly (e.g., `Moderation`, `Games`)
+3. **Keep state in cogs** - Store related data in the cog instance
+4. **Use cog checks** - Apply common checks at the cog level
+5. **Implement cleanup** - Use `cog_unload()` for cleanup
+6. **Document cogs** - Use docstrings for the class and commands
+7. **Separate concerns** - Each cog should have a single responsibility
+
+## Next Steps
+
+- [Commands Extension](/extensions/commands) - Learn more about commands
+- [Context](/extensions/context) - Understanding the Context object

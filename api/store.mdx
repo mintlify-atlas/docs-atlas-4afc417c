@@ -1,0 +1,190 @@
+---
+title: Store
+description: API reference for the Store and StoreItem classes
+---
+
+## Store
+
+Object representing store data from Fortnite Battle Royale.
+
+### Properties
+
+#### client
+
+**Type:** `Client`
+
+The client instance.
+
+#### items
+
+**Type:** `List[StoreItem]`
+
+A list containing data about all items in the item shop.
+
+#### daily_purchase_hours
+
+**Type:** `int`
+
+How many hours a day it is possible to purchase items. It most likely is `24`.
+
+#### refresh_interval_hours
+
+**Type:** `int`
+
+Refresh interval hours.
+
+#### created_at
+
+**Type:** `datetime.datetime`
+
+The UTC time of the creation and current day.
+
+#### expires_at
+
+**Type:** `datetime.datetime`
+
+The UTC time of when this item shop expires.
+
+### Example
+
+```python
+store = await client.fetch_item_shop()
+print(f"Store expires at: {store.expires_at}")
+for item in store.items:
+    print(f"{item.dev_name} - {item.price} V-Bucks")
+```
+
+---
+
+## StoreItem
+
+Featured store item.
+
+### Properties
+
+#### display_names
+
+**Type:** `List[str]`
+
+The display names for this item.
+
+#### dev_name
+
+**Type:** `str`
+
+The dev name of this item.
+
+#### asset_path
+
+**Type:** `Optional[str]`
+
+The asset path of the item. Could be `None` if not found.
+
+#### asset
+
+**Type:** `Optional[str]`
+
+The asset of the item. Usually a CID or something similar. Could be `None` if not found.
+
+#### encryption_key
+
+**Type:** `Optional[str]`
+
+The encryption key for this item. If no encryption key is found, this will be `None`.
+
+#### gifts_enabled
+
+**Type:** `bool`
+
+`True` if gifts is enabled for this item else `False`.
+
+#### daily_limit
+
+**Type:** `int`
+
+The daily account limit for this item. `-1` = Unlimited.
+
+#### weekly_limit
+
+**Type:** `int`
+
+The weekly account limit for this item. `-1` = Unlimited.
+
+#### monthly_limit
+
+**Type:** `int`
+
+The monthly account limit for this item. `-1` = Unlimited.
+
+#### offer_id
+
+**Type:** `str`
+
+The offer id of this item.
+
+#### offer_type
+
+**Type:** `str`
+
+The offer type of this item.
+
+#### price
+
+**Type:** `int`
+
+The price of this item in V-Bucks.
+
+#### refundable
+
+**Type:** `bool`
+
+`True` if item is refundable else `False`.
+
+#### grants
+
+**Type:** `List[dict]`
+
+A list of items you get from this purchase.
+
+Typical output:
+
+```python
+[{
+    'quantity': 1,
+    'type': 'AthenaCharacter',
+    'asset': 'cid_318_athena_commando_m_demon'
+}]
+```
+
+#### new
+
+**Type:** `bool`
+
+`True` if the item is in the item shop for the first time, else `False`.
+
+#### violator
+
+**Type:** `Optional[str]`
+
+The violator of this item. Violator is the red tag at the top of an item in the shop. Will be `None` if no violator is found for this item.
+
+#### panel
+
+**Type:** `int`
+
+The panel the item is listed in from left to right.
+
+### Example
+
+```python
+store = await client.fetch_item_shop()
+for item in store.items:
+    print(f"Item: {item.dev_name}")
+    print(f"Price: {item.price} V-Bucks")
+    print(f"Refundable: {item.refundable}")
+    print(f"New: {item.new}")
+    if item.violator:
+        print(f"Tag: {item.violator}")
+    print(f"Grants: {item.grants}")
+    print()
+```

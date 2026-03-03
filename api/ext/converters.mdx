@@ -1,0 +1,218 @@
+---
+title: "Converters"
+description: "Converter classes for argument parsing"
+---
+
+Converters allow you to transform command arguments from strings into other types. The commands extension provides several built-in converters and allows you to create custom ones.
+
+## Converter
+
+```python
+class Converter
+```
+
+The base class of custom converters that require the `Context` to be passed to be useful.
+
+This allows you to implement converters that function similar to the special cased `rebootpy` classes.
+
+Classes that derive from this should override the `convert()` method to do its conversion logic. This method must be a coroutine.
+
+### Methods
+
+#### convert
+
+```python
+async def convert(self, ctx: Context, argument: str) -> Any:
+    raise NotImplementedError('Derived classes need to implement this.')
+```
+
+The method to override to do conversion logic.
+
+If an error is found while converting, it is recommended to raise a `CommandError` derived exception as it will properly propagate to the error handlers.
+
+**Parameters:**
+- `ctx` (Context): The invocation context that the argument is being used in.
+- `argument` (str): The argument that is being converted.
+
+**Example:**
+```python
+class UpperConverter(commands.Converter):
+    async def convert(self, ctx, argument):
+        return argument.upper()
+
+@bot.command()
+async def shout(ctx, text: UpperConverter):
+    await ctx.send(text)
+```
+
+---
+
+## Built-in Converters
+
+### UserConverter
+
+```python
+class UserConverter(IDConverter)
+```
+
+Converts to a `rebootpy.User`.
+
+The lookup strategy is as follows (in order):
+1. Cache lookup by ID.
+2. Cache lookup by display name.
+3. API Request to fetch the user by id/display name.
+
+**Example:**
+```python
+@bot.command()
+async def userinfo(ctx, user: rebootpy.User):
+    await ctx.send(f'User: {user.display_name} ({user.id})')
+```
+
+### PartyMemberConverter
+
+```python
+class PartyMemberConverter(IDConverter)
+```
+
+Converts to a `rebootpy.PartyMember`.
+
+All lookups are done via the bots party member cache.
+
+The lookup strategy is as follows (in order):
+1. Lookup by ID.
+2. Lookup by display name.
+
+**Example:**
+```python
+@bot.command()
+async def memberinfo(ctx, member: rebootpy.PartyMember):
+    await ctx.send(f'Member: {member.display_name}')
+```
+
+### FriendConverter
+
+```python
+class FriendConverter(IDConverter)
+```
+
+Converts to a `rebootpy.Friend`.
+
+All lookups are via the friend cache.
+
+The lookup strategy is as follows (in order):
+1. Lookup by ID.
+2. Lookup by display name.
+
+**Example:**
+```python
+@bot.command()
+async def friendinfo(ctx, friend: rebootpy.Friend):
+    await ctx.send(f'Friend: {friend.display_name}')
+```
+
+---
+
+## Special Converters
+
+### Greedy
+
+```python
+Greedy[converter]
+```
+
+A special converter that greedily consumes arguments until it can't. As a consequence of this behavior, most input errors are silently discarded.
+
+When a conversion error happens, the greedy converter stops converting and returns all values that have been successfully converted.
+
+**Example:**
+```python
+@bot.command()
+async def ban(ctx, *members: commands.Greedy[rebootpy.PartyMember]):
+    for member in members:
+        await ctx.send(f'Banned {member.display_name}')
+```
+
+---
+
+## Creating Custom Converters
+
+You can create custom converters by subclassing `Converter` and implementing the `convert()` method:
+
+```python
+class PositiveInt(commands.Converter):
+    async def convert(self, ctx, argument):
+        try:
+            value = int(argument)
+        except ValueError:
+            raise commands.BadArgument(f'{argument} is not a valid integer')
+        
+        if value <= 0:
+            raise commands.BadArgument(f'{value} must be positive')
+        
+        return value
+
+@bot.command()
+async def multiply(ctx, value: PositiveInt, times: PositiveInt):
+    result = value * times
+    await ctx.send(f'{value} * {times} = {result}')
+```
+
+---
+
+## Type Hints as Converters
+
+You can use type hints directly without creating converter classes for simple types:
+
+### Basic Types
+
+- `str` - Default converter, returns the argument as-is
+- `int` - Converts to an integer
+- `float` - Converts to a float
+- `bool` - Converts to a boolean (accepts: yes/no, true/false, 1/0, on/off)
+
+**Example:**
+```python
+@bot.command()
+async def add(ctx, a: int, b: int):
+    await ctx.send(f'{a} + {b} = {a + b}')
+```
+
+### Optional Arguments
+
+```python
+from typing import Optional
+
+@bot.command()
+async def greet(ctx, name: Optional[str] = 'World'):
+    await ctx.send(f'Hello, {name}!')
+```
+
+### Union Types
+
+```python
+from typing import Union
+
+@bot.command()
+async def lookup(ctx, target: Union[rebootpy.Friend, rebootpy.PartyMember]):
+    await ctx.send(f'Found: {target.display_name}')
+```
+
+The converter will try each type in order until one succeeds.
+
+---
+
+## Error Handling
+
+When a converter fails, it raises exceptions that can be caught in error handlers:
+
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.BadArgument):
+        await ctx.send(f'Bad argument: {error}')
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f'Missing argument: {error.param.name}')
+    elif isinstance(error, commands.ConversionError):
+        await ctx.send(f'Conversion failed: {error}')
+```

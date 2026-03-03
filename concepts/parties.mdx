@@ -1,0 +1,570 @@
+---
+title: 'Party System'
+description: 'Managing parties and party members in rebootpy'
+---
+
+## Overview
+
+Parties (also called lobbies) are groups where players gather before entering a match. The party system allows your bot to create parties, join friends, manage members, and control party settings.
+
+## Party Classes
+
+### ClientParty
+
+Represents the bot's current party.
+
+### PartyMember
+
+Represents a member in a party.
+
+### ClientPartyMember
+
+Represents the bot as a party member (extends PartyMember).
+
+## Accessing the Current Party
+
+```python
+@client.event
+async def event_ready():
+    party = client.party
+    
+    print(f'Party ID: {party.id}')
+    print(f'Members: {party.member_count}/{party.max_size}')
+    print(f'Leader: {party.leader.display_name}')
+    print(f'Privacy: {party.privacy}')
+```
+
+## Party Configuration
+
+Configure default party settings when creating the client:
+
+```python
+import rebootpy
+from functools import partial
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(
+        prompt_device_code=True
+    ),
+    default_party_config=rebootpy.DefaultPartyConfig(
+        privacy=rebootpy.PartyPrivacy.PUBLIC,
+        max_size=16,
+        chat_enabled=True,
+        team_change_allowed=True,
+        meta=[
+            partial(rebootpy.ClientParty.set_playlist, 'Playlist_DefaultDuo')
+        ]
+    )
+)
+```
+
+### DefaultPartyConfig Parameters
+
+<ParamField path="privacy" type="PartyPrivacy" default="PUBLIC">
+  Party privacy setting (PUBLIC, FRIENDS_ALLOW_FRIENDS_OF_FRIENDS, FRIENDS, PRIVATE)
+</ParamField>
+
+<ParamField path="max_size" type="int" default="16">
+  Maximum party size (1-16)
+</ParamField>
+
+<ParamField path="chat_enabled" type="bool" default="True">
+  Whether party chat is enabled
+</ParamField>
+
+<ParamField path="team_change_allowed" type="bool" default="True">
+  Whether members can manually swap teams
+</ParamField>
+
+<ParamField path="meta" type="List[partial]">
+  List of party meta configurations to apply on party creation
+</ParamField>
+
+## Party Member Configuration
+
+Configure default member settings:
+
+```python
+from functools import partial
+
+client = rebootpy.Client(
+    auth=...,
+    default_party_member_config=rebootpy.DefaultPartyMemberConfig(
+        yield_leadership=False,
+        offline_ttl=30,
+        meta=[
+            partial(
+                rebootpy.ClientPartyMember.set_outfit,
+                'CID_028_Athena_Commando_F'
+            ),
+            partial(
+                rebootpy.ClientPartyMember.set_banner,
+                icon='StandardBanner15',
+                color='DefaultColor15',
+                season_level=100
+            )
+        ]
+    )
+)
+```
+
+## Managing Party Privacy
+
+```python
+import rebootpy
+
+# Set to public
+await client.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+
+# Set to friends only
+await client.party.set_privacy(rebootpy.PartyPrivacy.FRIENDS)
+
+# Set to private
+await client.party.set_privacy(rebootpy.PartyPrivacy.PRIVATE)
+
+# Check current privacy
+if client.party.privacy == rebootpy.PartyPrivacy.PRIVATE:
+    print('Party is private')
+```
+
+## Party Members
+
+### Get All Members
+
+```python
+party = client.party
+
+for member in party.members:
+    print(f'{member.display_name} - {member.outfit}')
+
+print(f'Total members: {party.member_count}')
+```
+
+### Get Specific Member
+
+```python
+# Get member by ID
+member = client.party.get_member('user-id')
+
+if member:
+    print(f'Found: {member.display_name}')
+else:
+    print('Member not found')
+```
+
+### Get Leader
+
+```python
+leader = client.party.leader
+print(f'Leader: {leader.display_name}')
+
+# Check if bot is leader
+if client.party.me.leader:
+    print('Bot is party leader')
+```
+
+## Inviting Members
+
+```python
+import rebootpy
+from rebootpy.errors import PartyError
+
+# Invite a friend
+friend = client.get_friend('user-id')
+
+try:
+    invitation = await client.party.invite(friend.id)
+    print(f'Invited {friend.display_name}')
+except PartyError as e:
+    print(f'Failed to invite: {e}')
+```
+
+## Joining Parties
+
+### Join by Party ID
+
+```python
+try:
+    party = await client.join_party('party-id-here')
+    print(f'Joined party {party.id}')
+except rebootpy.PartyError:
+    print('Could not join party')
+except rebootpy.Forbidden:
+    print('Party is private')
+```
+
+### Join Friend's Party
+
+```python
+@client.event
+async def event_friend_presence(before, after):
+    friend = after.friend
+    
+    # Join when friend comes online
+    if after.available and after.party and not after.party.private:
+        await friend.join_party()
+        print(f'Joined {friend.display_name}\'s party')
+```
+
+### Accept Party Invitation
+
+```python
+@client.event
+async def event_party_invitation(invitation):
+    print(f'Invited by {invitation.sender.display_name}')
+    
+    # Accept the invitation
+    await invitation.accept()
+```
+
+## Leaving Parties
+
+```python
+# Leave current party (creates a new one)
+await client.party.leave()
+print('Left party')
+```
+
+## Kicking Members
+
+```python
+# Kick a member (must be leader)
+member = client.party.get_member('user-id')
+
+if member:
+    await member.kick()
+    print(f'Kicked {member.display_name}')
+```
+
+## Promoting Members
+
+```python
+# Promote a member to leader
+member = client.party.get_member('user-id')
+
+if member and client.party.me.leader:
+    await member.promote()
+    print(f'Promoted {member.display_name} to leader')
+```
+
+## Party Messages
+
+```python
+# Send a party message
+await client.party.send('Hello everyone!')
+
+@client.event
+async def event_party_message(message):
+    print(f'{message.author.display_name}: {message.content}')
+    
+    if message.author.id != client.user.id:
+        await message.reply('Thanks for your message!')
+```
+
+See [Messages](/concepts/messages) for more details.
+
+## Party Meta (Settings)
+
+### Set Playlist
+
+```python
+# Set party playlist
+await client.party.set_playlist(
+    playlist='Playlist_DefaultDuo',
+    tournament='',
+    event_window='',
+    region=rebootpy.Region.EUROPE
+)
+```
+
+### Set Custom Matchmaking Key
+
+```python
+await client.party.set_custom_key('MyCustomKey123')
+```
+
+### Set Party Size
+
+```python
+# Change max party size
+await client.party.set_max_size(4)
+```
+
+## Member Cosmetics
+
+### Set Outfit (Skin)
+
+```python
+member = client.party.me
+
+# Set outfit by asset path
+await member.set_outfit(
+    asset='CID_028_Athena_Commando_F'  # Renegade Raider
+)
+
+# Set outfit with variants
+await member.set_outfit(
+    asset='CID_030_Athena_Commando_M_Halloween',
+    variants=[
+        {
+            'channel': 'Material',
+            'variant': 'Mat1'
+        }
+    ]
+)
+```
+
+### Set Backpack
+
+```python
+await client.party.me.set_backpack(
+    asset='BID_001_BlueSquire'  # Blue Squire Shield
+)
+```
+
+### Set Pickaxe
+
+```python
+await client.party.me.set_pickaxe(
+    asset='Pickaxe_Lockjaw'  # Bitemark Pickaxe
+)
+```
+
+### Set Emote
+
+```python
+# Play an emote
+await client.party.me.set_emote(
+    asset='EID_Floss'  # Floss emote
+)
+
+# Clear emote
+await client.party.me.clear_emote()
+```
+
+### Set Banner
+
+```python
+await client.party.me.set_banner(
+    icon='StandardBanner15',
+    color='DefaultColor15',
+    season_level=100
+)
+```
+
+### Set Battle Pass Info
+
+```python
+await client.party.me.set_battlepass_info(
+    has_purchased=True,
+    level=100
+)
+```
+
+## Member Ready State
+
+```python
+# Set ready
+await client.party.me.set_ready(rebootpy.ReadyState.READY)
+
+# Set sitting out
+await client.party.me.set_ready(rebootpy.ReadyState.SITTING_OUT)
+
+# Set not ready
+await client.party.me.set_ready(rebootpy.ReadyState.NOT_READY)
+```
+
+## Batch Cosmetic Updates
+
+For better performance, use `edit()` to update multiple cosmetics at once:
+
+```python
+from functools import partial
+
+await client.party.me.edit(
+    partial(client.party.me.set_outfit, 'CID_028_Athena_Commando_F'),
+    partial(client.party.me.set_backpack, 'BID_001_BlueSquire'),
+    partial(client.party.me.set_pickaxe, 'Pickaxe_Lockjaw'),
+    partial(client.party.me.set_banner, icon='StandardBanner15', season_level=100)
+)
+```
+
+## Party Events
+
+### Member Joined
+
+```python
+@client.event
+async def event_party_member_join(member):
+    print(f'{member.display_name} joined the party')
+    
+    # Welcome message
+    await client.party.send(f'Welcome {member.display_name}!')
+    
+    # Check if it's the bot
+    if member.id == client.user.id:
+        print('Bot joined a new party')
+```
+
+### Member Left
+
+```python
+@client.event
+async def event_party_member_leave(member):
+    print(f'{member.display_name} left the party')
+```
+
+### Member Updated
+
+```python
+@client.event
+async def event_party_member_update(member):
+    print(f'{member.display_name} updated their cosmetics')
+    print(f'Outfit: {member.outfit}')
+    print(f'Backpack: {member.backpack}')
+    print(f'Emote: {member.emote}')
+```
+
+### Leadership Changed
+
+```python
+@client.event
+async def event_party_member_promote(old_leader, new_leader):
+    print(f'{new_leader.display_name} is now the party leader')
+    
+    # When bot becomes leader
+    if new_leader.id == client.user.id:
+        await client.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+        await client.party.send('I\'m the leader now!')
+```
+
+### Member Kicked
+
+```python
+@client.event
+async def event_party_member_kick(member):
+    print(f'{member.display_name} was kicked from the party')
+```
+
+### Party Invitation
+
+```python
+@client.event
+async def event_party_invitation(invitation):
+    print(f'Invited to party by {invitation.sender.display_name}')
+    
+    # Auto-accept if sender is a friend
+    if client.get_friend(invitation.sender.id):
+        await invitation.accept()
+```
+
+## Advanced Examples
+
+### Copy Friend's Loadout
+
+```python
+@client.event
+async def event_party_member_join(member):
+    if member.id == client.user.id:
+        return
+    
+    # Wait a moment for member's cosmetics to load
+    await asyncio.sleep(1)
+    
+    # Copy their cosmetics
+    await client.party.me.edit(
+        partial(client.party.me.set_outfit, member.outfit),
+        partial(client.party.me.set_backpack, member.backpack),
+        partial(client.party.me.set_pickaxe, member.pickaxe)
+    )
+    
+    await client.party.send(f'Copied {member.display_name}\'s loadout!')
+```
+
+### Auto-promote System
+
+```python
+@client.event
+async def event_party_member_join(member):
+    # If bot is leader and a friend joins, promote them
+    if client.party.me.leader and client.get_friend(member.id):
+        await member.promote()
+        print(f'Promoted {member.display_name} to leader')
+```
+
+### Mirror Emotes
+
+```python
+@client.event
+async def event_party_member_update(member):
+    # Don't mirror ourselves
+    if member.id == client.user.id:
+        return
+    
+    # Mirror their emote
+    if member.emote != 'None':
+        await client.party.me.set_emote(member.emote)
+```
+
+### Party Size Manager
+
+```python
+@client.event
+async def event_party_member_join(member):
+    party = client.party
+    
+    # Kick if party is full
+    if party.member_count > party.max_size and party.me.leader:
+        await member.kick()
+        await party.send('Party is full!')
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check leadership" icon="crown">
+    Always verify `client.party.me.leader` before performing leader actions
+  </Card>
+  <Card title="Use edit() for multiple updates" icon="pen-to-square">
+    Batch cosmetic updates with `edit()` to reduce API calls
+  </Card>
+  <Card title="Handle party changes" icon="people-group">
+    Bot creates a new party when kicked or when leaving
+  </Card>
+  <Card title="Validate cosmetic assets" icon="check">
+    Invalid cosmetic IDs will cause errors - verify IDs before using
+  </Card>
+</CardGroup>
+
+## Common Party Privacies
+
+```python
+# Public - Anyone can join
+rebootpy.PartyPrivacy.PUBLIC
+
+# Friends only
+rebootpy.PartyPrivacy.FRIENDS
+
+# Friends and friends of friends
+rebootpy.PartyPrivacy.FRIENDS_ALLOW_FRIENDS_OF_FRIENDS
+
+# Private - Invite only
+rebootpy.PartyPrivacy.PRIVATE
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Messages" href="/concepts/messages" icon="message">
+    Send party and friend messages
+  </Card>
+  <Card title="Events" href="/concepts/events" icon="bolt">
+    Handle party-related events
+  </Card>
+  <Card title="Friends" href="/concepts/friends" icon="users">
+    Manage friends to invite to parties
+  </Card>
+  <Card title="Presence" href="/concepts/presence" icon="signal">
+    Track party information from presence
+  </Card>
+</CardGroup>

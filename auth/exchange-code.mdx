@@ -1,0 +1,281 @@
+---
+title: ExchangeCodeAuth
+description: Authenticate using Epic Games exchange codes
+---
+
+`ExchangeCodeAuth` authenticates using an exchange code from Epic Games. This method requires a custom solution to obtain the code.
+
+<Warning>
+  Getting exchange codes has become significantly harder since Epic patched the old method. This authentication method is only recommended if you have a custom solution for obtaining exchange codes.
+</Warning>
+
+## How to Get an Exchange Code
+
+Epic Games removed the easy method to get exchange codes. You now need to provide a custom solution, such as:
+
+1. Running a Selenium/Playwright process
+2. Logging in at https://epicgames.com
+3. Redirecting to `/id/api/exchange/generate`
+4. Extracting and returning the exchange code
+
+### Custom Selenium Example
+
+```python
+import rebootpy
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from rebootpy.ext import commands
+
+def get_exchange_code():
+    """Custom function to get exchange code via Selenium."""
+    driver = webdriver.Chrome()
+    
+    try:
+        # Navigate to Epic Games login
+        driver.get('https://www.epicgames.com/id/login')
+        
+        # Wait for user to login manually
+        # Then navigate to exchange endpoint
+        WebDriverWait(driver, 300).until(
+            EC.url_contains('epicgames.com/id/api/exchange')
+        )
+        
+        # Extract the exchange code from the page
+        # This is a simplified example - actual implementation varies
+        code_element = driver.find_element(By.TAG_NAME, 'pre')
+        import json
+        data = json.loads(code_element.text)
+        return data['code']
+    
+    finally:
+        driver.quit()
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.ExchangeCodeAuth(
+        code=get_exchange_code  # Pass the function
+    )
+)
+
+bot.run()
+```
+
+## Basic Usage
+
+### With Static Code
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.ExchangeCodeAuth(
+        code='your_exchange_code_here'
+    )
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+
+bot.run()
+```
+
+### With Function
+
+```python
+import rebootpy
+
+def get_exchange_code():
+    # Your custom logic
+    return 'exchange_code'
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.ExchangeCodeAuth(
+        code=get_exchange_code  # Function that returns code
+    )
+)
+```
+
+### With Async Function
+
+```python
+import rebootpy
+import aiohttp
+
+async def get_exchange_code():
+    # Example: Fetch from your own auth server
+    async with aiohttp.ClientSession() as session:
+        async with session.get('https://your-auth-server.com/code') as resp:
+            data = await resp.json()
+            return data['code']
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.ExchangeCodeAuth(
+        code=get_exchange_code  # Async function
+    )
+)
+```
+
+## Parameters
+
+<ParamField path="code" type="Union[str, Callable, Awaitable]" required>
+  The exchange code or a function/coroutine that when called returns the exchange code.
+</ParamField>
+
+<ParamField path="device_id" type="str" default="auto-generated">
+  A 32 character hex string representing your device. If not provided, one will be automatically generated.
+</ParamField>
+
+<ParamField path="ios_token" type="str" default="auto">
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+<ParamField path="token_type" type="str" default="eg1">
+  The token type to use. It's recommended you only change this if you know what you're doing.
+</ParamField>
+
+## Attributes
+
+<ParamField path="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ParamField>
+
+<ParamField path="account_id" type="str">
+  The account ID of the authenticated user.
+</ParamField>
+
+<ParamField path="resolved_code" type="str">
+  The resolved exchange code after calling any provided callable.
+</ParamField>
+
+## Important Limitations
+
+<Warning>
+  An exchange code only works for a single login within a short timeframe (300 seconds). You need to get a new code for each login.
+</Warning>
+
+- Exchange codes expire after 5 minutes
+- Each code can only be used once
+- Requires custom solution to obtain codes
+- Not recommended for most users
+- Consider using [AuthorizationCodeAuth](/auth/authorization-code) or [DeviceCodeAuth](/auth/device-code) instead
+
+## Advanced Example with Web Server
+
+```python
+import rebootpy
+import asyncio
+from aiohttp import web
+from rebootpy.ext import commands
+
+class ExchangeCodeServer:
+    def __init__(self):
+        self.code = None
+        self.code_ready = asyncio.Event()
+    
+    async def handle_code(self, request):
+        """Endpoint to receive exchange code."""
+        data = await request.json()
+        self.code = data.get('code')
+        self.code_ready.set()
+        return web.json_response({'status': 'ok'})
+    
+    async def get_code(self):
+        """Wait for code to be submitted."""
+        await self.code_ready.wait()
+        code = self.code
+        self.code = None
+        self.code_ready.clear()
+        return code
+    
+    async def start_server(self):
+        app = web.Application()
+        app.router.add_post('/submit_code', self.handle_code)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, 'localhost', 8080)
+        await site.start()
+
+server = ExchangeCodeServer()
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.ExchangeCodeAuth(
+        code=server.get_code  # Async method
+    )
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+
+async def main():
+    await server.start_server()
+    print('Server running on http://localhost:8080')
+    print('Send POST to /submit_code with {"code": "your_code"}')
+    await bot.start()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+## Common Errors
+
+### Invalid Exchange Code
+
+If you receive an `AuthException` with "Invalid exchange code supplied":
+
+- The code has expired (older than 5 minutes)
+- The code has already been used
+- The code was copied incorrectly
+- Your custom solution returned an invalid code
+
+Generate a new code and try again.
+
+### Exchange Code Not Found
+
+This error occurs when:
+- The code doesn't exist in Epic's system
+- The code was already consumed
+- There's a timing issue with code generation
+
+The library automatically retries up to 3 times for this specific error.
+
+## Why Not Use This Method?
+
+Unless you have a specific requirement, consider these alternatives:
+
+1. **[DeviceCodeAuth](/auth/device-code)** - Easier browser-based login
+2. **[AuthorizationCodeAuth](/auth/authorization-code)** - Simpler code-based auth
+3. **[DeviceAuth](/auth/device-auth)** - Best for production
+4. **[AdvancedAuth](/auth/advanced)** - Automatic fallback handling
+
+ExchangeCodeAuth is primarily useful if you:
+- Already have an exchange code generation system
+- Need exchange codes for specific tooling
+- Are integrating with existing Epic Games authentication flows
+
+## Migration to Better Methods
+
+Consider migrating to a more maintainable authentication method:
+
+```python
+# Instead of ExchangeCodeAuth with complex setup:
+import rebootpy
+
+# Use AdvancedAuth for automatic handling:
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AdvancedAuth(
+        prompt_device_code=True  # Much simpler!
+    )
+)
+```
+
+See [AdvancedAuth](/auth/advanced) for the recommended approach.

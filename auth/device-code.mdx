@@ -1,0 +1,292 @@
+---
+title: DeviceCodeAuth
+description: Authenticate using device code flow with browser login
+---
+
+`DeviceCodeAuth` provides a user-friendly authentication method that opens a browser for login without requiring manual code copying.
+
+## How It Works
+
+1. Bot generates a unique device code
+2. A browser window opens to Epic Games login page
+3. You log in through the browser
+4. Bot automatically detects successful login and completes authentication
+
+## Basic Usage
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth(
+        open_link_in_browser=True
+    )
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+
+bot.run()
+```
+
+When you run this code:
+1. Your default browser will open automatically
+2. Log in to your Epic Games account
+3. The bot will detect the login and connect
+
+## Custom Link Handling
+
+If you want to handle the login link yourself (e.g., display it in a GUI), you can use the `event_device_code_generated` event:
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth(
+        open_link_in_browser=False  # Don't auto-open browser
+    )
+)
+
+@bot.event
+async def event_device_code_generated(link):
+    print(f'Please login here: {link}')
+    # Or display in your GUI, send to Discord, etc.
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+
+bot.run()
+```
+
+## Parameters
+
+<ParamField path="open_link_in_browser" type="bool" default={true}>
+  Whether to automatically open the Epic Games login page in the default browser. Set to `False` if you want to handle the link yourself.
+</ParamField>
+
+<ParamField path="ios_token" type="str" default="auto">
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+<ParamField path="switch_token" type="str" default="auto">
+  The switch token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+<ParamField path="token_type" type="str" default="eg1">
+  The token type to use. It's recommended you only change this if you know what you're doing.
+</ParamField>
+
+## Attributes
+
+<ParamField path="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ParamField>
+
+<ParamField path="account_id" type="str">
+  The account ID of the authenticated user.
+</ParamField>
+
+## Events
+
+### event_device_code_generated
+
+Dispatched when the device code is generated and ready for the user to login.
+
+```python
+@bot.event
+async def event_device_code_generated(link: str):
+    """Called when device code login link is ready.
+    
+    Parameters
+    ----------
+    link : str
+        The URL the user should visit to complete authentication.
+    """
+    print(f'Login at: {link}')
+```
+
+## Advanced Usage
+
+### Generate Device Auth After Login
+
+You can automatically generate device auth credentials after logging in for easier future logins:
+
+```python
+import rebootpy
+import json
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth()
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name}')
+    
+    # Generate device auth for next time
+    device_auth = await bot.auth.generate_device_auth()
+    
+    details = {
+        'device_id': device_auth['deviceId'],
+        'account_id': device_auth['accountId'],
+        'secret': device_auth['secret']
+    }
+    
+    with open('device_auths.json', 'w') as fp:
+        json.dump(details, fp)
+    
+    print('Device auth saved! Use DeviceAuth next time.')
+
+bot.run()
+```
+
+### Custom Login Flow with GUI
+
+```python
+import rebootpy
+import tkinter as tk
+import webbrowser
+from rebootpy.ext import commands
+
+class BotGUI:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title('Fortnite Bot')
+        self.label = tk.Label(self.root, text='Initializing...')
+        self.label.pack()
+        self.button = None
+        
+        self.bot = commands.Bot(
+            command_prefix='!',
+            auth=rebootpy.DeviceCodeAuth(
+                open_link_in_browser=False
+            )
+        )
+        
+        @self.bot.event
+        async def event_device_code_generated(link):
+            self.label.config(text='Click button to login')
+            self.button = tk.Button(
+                self.root,
+                text='Login to Epic Games',
+                command=lambda: webbrowser.open(link)
+            )
+            self.button.pack()
+        
+        @self.bot.event
+        async def event_ready():
+            self.label.config(text=f'Connected as {self.bot.user.display_name}')
+            if self.button:
+                self.button.destroy()
+    
+    def run(self):
+        self.bot.loop.create_task(self.bot.start())
+        self.root.mainloop()
+
+if __name__ == '__main__':
+    gui = BotGUI()
+    gui.run()
+```
+
+## Automatic Reauthentication
+
+DeviceCodeAuth supports automatic reauthentication if token refresh fails:
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth()
+)
+
+@bot.event
+async def event_auth_refresh():
+    print('Authentication tokens refreshed')
+
+@bot.event
+async def event_device_code_generated(link):
+    print(f'Reauthentication required. Please login: {link}')
+
+bot.run()
+```
+
+## Common Scenarios
+
+### First Time Login
+
+```python
+# Best for users who haven't set up device auth yet
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth()
+)
+```
+
+### Development/Testing
+
+```python
+# Quick login for testing without saving credentials
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth()
+)
+```
+
+### Headless Servers
+
+```python
+# For servers without a browser (display link instead)
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.DeviceCodeAuth(
+        open_link_in_browser=False
+    )
+)
+
+@bot.event
+async def event_device_code_generated(link):
+    print(f'Login URL: {link}')
+    # Send link via Discord, email, SMS, etc.
+```
+
+## Common Errors
+
+### Corrective Action Required
+
+If Epic Games requires corrective action (like setting date of birth), the library handles common cases automatically:
+
+```python
+# Date of birth is set automatically if required
+# No action needed from you
+```
+
+For unsupported corrective actions, you'll receive an `AuthException` with details.
+
+### Authorization Pending
+
+The bot polls Epic's servers every 10 seconds while waiting for login. This is normal behavior:
+
+```python
+# The bot automatically waits for you to complete login
+# No timeout - it will wait indefinitely
+```
+
+## Migration Path
+
+For production use, consider migrating to [DeviceAuth](/auth/device-auth):
+
+1. Use DeviceCodeAuth for initial login
+2. Generate device auth credentials
+3. Switch to DeviceAuth for future runs
+
+Or use [AdvancedAuth](/auth/advanced) to handle this automatically.

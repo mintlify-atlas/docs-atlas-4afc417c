@@ -1,0 +1,307 @@
+---
+title: Commands extension guide
+description: Learn how to use the commands extension to build feature-rich bots
+---
+
+The commands extension provides a powerful framework for creating command-based bots, similar to discord.py's commands extension.
+
+## Basic setup
+
+Import and create a bot instance:
+
+```python
+from rebootpy.ext import commands
+import rebootpy
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AdvancedAuth()
+)
+```
+
+## Creating commands
+
+### Simple commands
+
+Use the `@bot.command()` decorator to create commands:
+
+```python
+@bot.command()
+async def ping(ctx):
+    await ctx.send('Pong!')
+```
+
+Users can invoke this with `!ping` in either friend or party messages.
+
+### Commands with arguments
+
+Commands can accept arguments:
+
+```python
+@bot.command()
+async def say(ctx, *, message):
+    await ctx.send(message)
+
+@bot.command()
+async def add(ctx, a: int, b: int):
+    result = a + b
+    await ctx.send(f'{a} + {b} = {result}')
+```
+
+The `*` in `*, message` means all remaining text becomes the `message` argument.
+
+### Command aliases
+
+Add aliases for commands:
+
+```python
+@bot.command(aliases=['p'])
+async def ping(ctx):
+    await ctx.send('Pong!')
+```
+
+Now both `!ping` and `!p` work.
+
+## Command groups
+
+Organize related commands into groups:
+
+```python
+@bot.group()
+async def party(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send(f'Party size: {bot.party.member_count}')
+
+@party.command()
+async def privacy(ctx, privacy: str):
+    if privacy.lower() == 'public':
+        await bot.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+        await ctx.send('Party is now public')
+    elif privacy.lower() == 'private':
+        await bot.party.set_privacy(rebootpy.PartyPrivacy.PRIVATE)
+        await ctx.send('Party is now private')
+
+@party.command()
+async def kick(ctx, member_name: str):
+    member = bot.party.get_member(member_name)
+    if member:
+        await member.kick()
+        await ctx.send(f'Kicked {member.display_name}')
+    else:
+        await ctx.send('Member not found')
+```
+
+Use: `!party`, `!party privacy public`, `!party kick Username`
+
+## Checks
+
+Restrict who can use commands:
+
+```python
+@bot.command()
+@commands.dm_only()
+async def secret(ctx):
+    await ctx.send('This only works in DMs!')
+
+@bot.command()
+@commands.party_only()
+async def partyinfo(ctx):
+    await ctx.send(f'Party size: {ctx.party.member_count}')
+
+@bot.command()
+@commands.is_owner()
+async def shutdown(ctx):
+    await ctx.send('Shutting down...')
+    await bot.close()
+```
+
+### Custom checks
+
+Create custom check functions:
+
+```python
+def is_friend(ctx):
+    return ctx.author in bot.friends
+
+@bot.command()
+@commands.check(is_friend)
+async def friendonly(ctx):
+    await ctx.send('You are my friend!')
+```
+
+## Cooldowns
+
+Prevent command spam:
+
+```python
+from rebootpy.ext.commands import BucketType
+
+@bot.command()
+@commands.cooldown(rate=1, per=60.0, bucket=BucketType.user)
+async def stats(ctx):
+    # This can only be used once per minute per user
+    stats = await ctx.author.fetch_br_stats()
+    await ctx.send(f'Wins: {stats.get_stats()["wins"]}')
+```
+
+## Error handling
+
+Handle command errors:
+
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send('Command not found!')
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f'Missing required argument: {error.param.name}')
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f'Command on cooldown. Try again in {error.retry_after:.1f}s')
+    else:
+        await ctx.send(f'An error occurred: {error}')
+```
+
+You can also add error handlers to specific commands:
+
+```python
+@bot.command()
+async def divide(ctx, a: int, b: int):
+    result = a / b
+    await ctx.send(f'{a} / {b} = {result}')
+
+@divide.error
+async def divide_error(ctx, error):
+    if isinstance(error, ZeroDivisionError):
+        await ctx.send('Cannot divide by zero!')
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send('Please provide valid numbers')
+```
+
+## Converters
+
+Automatically convert arguments:
+
+```python
+@bot.command()
+async def invite(ctx, friend: commands.FriendConverter):
+    # friend is automatically converted from name to Friend object
+    await friend.invite()
+    await ctx.send(f'Invited {friend.display_name}')
+
+@bot.command()
+async def kick(ctx, member: commands.PartyMemberConverter):
+    # member is automatically converted to PartyMember object
+    await member.kick()
+    await ctx.send(f'Kicked {member.display_name}')
+```
+
+### Custom converters
+
+```python
+class OutfitConverter(commands.Converter):
+    async def convert(self, ctx, argument):
+        # Convert outfit name/ID to full CID
+        if argument.startswith('CID_'):
+            return argument
+        return f'CID_{argument}_Athena_Commando_M'
+
+@bot.command()
+async def outfit(ctx, outfit: OutfitConverter):
+    await ctx.me.set_outfit(outfit)
+    await ctx.send(f'Set outfit to {outfit}')
+```
+
+## Before and after hooks
+
+Run code before or after commands:
+
+```python
+@bot.before_invoke
+async def before_any_command(ctx):
+    print(f'{ctx.author.display_name} used {ctx.command.name}')
+
+@bot.after_invoke
+async def after_any_command(ctx):
+    print(f'{ctx.command.name} finished')
+
+# Or per-command:
+@bot.command()
+async def special(ctx):
+    await ctx.send('Special command')
+
+@special.before_invoke
+async def before_special(ctx):
+    await ctx.send('Running special command...')
+```
+
+## Context object
+
+The `ctx` parameter provides useful information:
+
+```python
+@bot.command()
+async def info(ctx):
+    await ctx.send(f'Author: {ctx.author.display_name}')
+    await ctx.send(f'Command: {ctx.command.name}')
+    await ctx.send(f'Prefix: {ctx.prefix}')
+    await ctx.send(f'Bot: {ctx.bot.user.display_name}')
+    
+    if ctx.party:
+        await ctx.send(f'Party size: {ctx.party.member_count}')
+    
+    if ctx.friend:
+        await ctx.send(f'Message from friend: {ctx.friend.display_name}')
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use meaningful command names">
+    Choose clear, descriptive names for your commands. Users should understand what a command does from its name.
+  </Accordion>
+
+  <Accordion title="Add help text">
+    Use docstrings to provide help text:
+
+    ```python
+    @bot.command()
+    async def greet(ctx, name: str):
+        """Greet someone by name"""
+        await ctx.send(f'Hello, {name}!')
+    ```
+
+    Users can see this with `!help greet`.
+  </Accordion>
+
+  <Accordion title="Handle errors gracefully">
+    Always implement error handling to provide helpful feedback when things go wrong.
+  </Accordion>
+
+  <Accordion title="Use type hints">
+    Type hints enable automatic conversion and better error messages:
+
+    ```python
+    @bot.command()
+    async def repeat(ctx, times: int, *, message: str):
+        for _ in range(times):
+            await ctx.send(message)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Using cogs" icon="puzzle-piece" href="/extensions/cogs">
+    Organize commands into modular cogs
+  </Card>
+  <Card title="Context reference" icon="book" href="/extensions/context">
+    Learn about the Context object
+  </Card>
+  <Card title="Bot API reference" icon="code" href="/api/ext/bot">
+    Full Bot class documentation
+  </Card>
+  <Card title="Command API reference" icon="terminal" href="/api/ext/command">
+    Detailed command documentation
+  </Card>
+</CardGroup>

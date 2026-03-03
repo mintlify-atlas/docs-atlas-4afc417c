@@ -1,0 +1,371 @@
+---
+title: Error handling
+description: Learn how to handle errors and exceptions in your rebootpy bot
+---
+
+Proper error handling ensures your bot remains stable and provides helpful feedback when things go wrong.
+
+## Exception hierarchy
+
+All rebootpy exceptions inherit from `FortniteException`:
+
+```python
+import rebootpy
+
+try:
+    # Bot operations
+    pass
+except rebootpy.FortniteException as e:
+    # Catches all rebootpy exceptions
+    print(f'Fortnite error: {e}')
+```
+
+## Common exceptions
+
+### HTTPException
+
+Raised when HTTP requests to Epic Games services fail:
+
+```python
+try:
+    stats = await user.fetch_br_stats()
+except rebootpy.HTTPException as e:
+    print(f'HTTP Error: {e.status}')
+    print(f'Message: {e.message}')
+    print(f'Code: {e.message_code}')
+```
+
+**Common HTTP errors:**
+- `404` - Resource not found
+- `403` - Forbidden/not authorized
+- `429` - Rate limited
+- `500` - Server error
+
+### AuthException
+
+Raised when authentication fails:
+
+```python
+import rebootpy
+
+try:
+    client = rebootpy.Client(
+        auth=rebootpy.DeviceAuth(
+            account_id='invalid',
+            device_id='invalid',
+            secret='invalid'
+        )
+    )
+    await client.start()
+except rebootpy.AuthException as e:
+    print(f'Authentication failed: {e}')
+    print(f'Original error: {e.original}')
+```
+
+### PartyError
+
+Raised for party-related errors:
+
+```python
+try:
+    await client.party.me.set_outfit('INVALID_OUTFIT')
+except rebootpy.PartyError as e:
+    print(f'Party error: {e}')
+```
+
+### Friendship exceptions
+
+```python
+try:
+    await client.add_friend('Username')
+except rebootpy.DuplicateFriendship:
+    print('Already friends with this user')
+except rebootpy.FriendshipRequestAlreadySent:
+    print('Friend request already sent')
+except rebootpy.MaxFriendshipsExceeded:
+    print('Friend list is full')
+except rebootpy.InviteeMaxFriendshipsExceeded:
+    print('User\'s friend list is full')
+except rebootpy.InviteeMaxFriendshipRequestsExceeded:
+    print('User has too many pending requests')
+```
+
+### NotFound and Forbidden
+
+```python
+try:
+    user = await client.fetch_user('invalid_id')
+except rebootpy.NotFound:
+    print('User not found')
+
+try:
+    stats = await user.fetch_br_stats()
+except rebootpy.Forbidden:
+    print('Not authorized to view stats')
+```
+
+## Handling errors in events
+
+### Global error handler
+
+Handle all uncaught exceptions in events:
+
+```python
+import traceback
+
+@client.event
+async def event_error(error):
+    print('An error occurred:')
+    traceback.print_exception(type(error), error, error.__traceback__)
+```
+
+### Specific event error handling
+
+Handle errors within specific events:
+
+```python
+@client.event
+async def event_friend_message(message):
+    try:
+        # Process message
+        if message.content == 'stats':
+            stats = await message.author.fetch_br_stats()
+            await message.reply(f'Wins: {stats.get_stats()["wins"]}')
+    except rebootpy.HTTPException as e:
+        await message.reply(f'Could not fetch stats: {e.message}')
+    except KeyError:
+        await message.reply('No stats available')
+    except Exception as e:
+        await message.reply('An error occurred')
+        print(f'Error in friend_message: {e}')
+```
+
+## Command error handling
+
+The commands extension provides special error handling:
+
+### Global command error handler
+
+```python
+from rebootpy.ext import commands
+
+bot = commands.Bot(command_prefix='!', auth=rebootpy.AdvancedAuth())
+
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send('Command not found!')
+    
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f'Missing required argument: {error.param.name}')
+    
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send('Invalid argument provided')
+    
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(
+            f'Command on cooldown. Retry in {error.retry_after:.1f}s'
+        )
+    
+    elif isinstance(error, commands.CheckFailure):
+        await ctx.send('You do not have permission to use this command')
+    
+    elif isinstance(error, commands.CommandInvokeError):
+        await ctx.send('An error occurred while executing the command')
+        print(f'Command error: {error.original}')
+    
+    else:
+        await ctx.send(f'An error occurred: {error}')
+        print(f'Unhandled error: {error}')
+```
+
+### Per-command error handlers
+
+```python
+@bot.command()
+async def divide(ctx, a: int, b: int):
+    """Divide two numbers"""
+    result = a / b
+    await ctx.send(f'{a} / {b} = {result}')
+
+@divide.error
+async def divide_error(ctx, error):
+    if isinstance(error, ZeroDivisionError):
+        await ctx.send('Cannot divide by zero!')
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send('Please provide valid numbers')
+    else:
+        await ctx.send(f'Error: {error}')
+```
+
+## Retry logic
+
+Implement retry logic for transient errors:
+
+```python
+import asyncio
+
+async def fetch_with_retry(coro, max_retries=3, delay=1.0):
+    """Retry a coroutine on failure"""
+    for attempt in range(max_retries):
+        try:
+            return await coro
+        except rebootpy.HTTPException as e:
+            if e.status >= 500 or e.status == 429:
+                # Retry on server errors and rate limits
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(delay * (attempt + 1))
+                    continue
+            raise
+        except Exception:
+            raise
+
+# Usage
+stats = await fetch_with_retry(
+    client.user.fetch_br_stats()
+)
+```
+
+## Graceful degradation
+
+Provide fallback behavior when operations fail:
+
+```python
+@bot.command()
+async def profile(ctx, user_name: str = None):
+    try:
+        if user_name:
+            user = await bot.fetch_user(user_name)
+        else:
+            user = ctx.author
+        
+        # Try to fetch stats
+        try:
+            stats = await user.fetch_br_stats()
+            wins = stats.get_stats().get('wins', 0)
+            await ctx.send(f'{user.display_name} has {wins} wins')
+        except rebootpy.HTTPException:
+            # Fallback to basic info if stats unavailable
+            await ctx.send(f'Stats unavailable for {user.display_name}')
+    
+    except rebootpy.NotFound:
+        await ctx.send('User not found')
+```
+
+## Validation
+
+Validate inputs before making API calls:
+
+```python
+@bot.command()
+async def outfit(ctx, outfit_id: str):
+    # Validate outfit ID format
+    if not outfit_id.startswith('CID_'):
+        await ctx.send('Invalid outfit ID. Must start with CID_')
+        return
+    
+    try:
+        await ctx.me.set_outfit(outfit_id)
+        await ctx.send(f'Set outfit to {outfit_id}')
+    except rebootpy.PartyError as e:
+        await ctx.send('Failed to set outfit')
+```
+
+## Logging
+
+Use Python's logging module for better error tracking:
+
+```python
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('bot.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger('rebootpy_bot')
+
+@client.event
+async def event_error(error):
+    logger.error('Uncaught exception', exc_info=error)
+
+@bot.event
+async def event_command_error(ctx, error):
+    logger.error(
+        f'Error in command {ctx.command}: {error}',
+        exc_info=error
+    )
+    await ctx.send('An error occurred')
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Always handle exceptions">
+    Don't let exceptions crash your bot. Handle them gracefully and provide feedback.
+  </Accordion>
+
+  <Accordion title="Use specific exception types">
+    Catch specific exceptions rather than catching all exceptions:
+
+    ```python
+    # Good
+    except rebootpy.HTTPException:
+        pass
+    
+    # Bad - too broad
+    except Exception:
+        pass
+    ```
+  </Accordion>
+
+  <Accordion title="Log errors for debugging">
+    Always log errors with full context to help with debugging:
+
+    ```python
+    logger.error('Error processing command', exc_info=True)
+    ```
+  </Accordion>
+
+  <Accordion title="Provide user feedback">
+    When errors occur, inform users what went wrong in a user-friendly way:
+
+    ```python
+    await ctx.send('Could not fetch stats. Please try again later.')
+    ```
+  </Accordion>
+
+  <Accordion title="Don't suppress errors silently">
+    If you catch an exception, either handle it or re-raise it:
+
+    ```python
+    try:
+        await some_operation()
+    except rebootpy.PartyError:
+        logger.warning('Party operation failed, continuing anyway')
+        # This is acceptable if the error is truly ignorable
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Exceptions reference" icon="triangle-exclamation" href="/api/errors">
+    Complete exception documentation
+  </Card>
+  <Card title="Command errors" icon="terminal" href="/api/ext/errors">
+    Commands extension error handling
+  </Card>
+  <Card title="Events reference" icon="bolt" href="/concepts/events">
+    Learn about the event system
+  </Card>
+  <Card title="Client reference" icon="code" href="/api/client">
+    Client class documentation
+  </Card>
+</CardGroup>

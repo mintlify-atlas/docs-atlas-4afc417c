@@ -1,0 +1,514 @@
+---
+title: "User Classes"
+description: "User, ClientUser, and BlockedUser class references"
+---
+
+## User
+
+Represents a Fortnite user.
+
+### Attributes
+
+<ResponseField name="client" type="BasicClient">
+  The client instance.
+</ResponseField>
+
+<ResponseField name="id" type="str">
+  The user's account ID.
+</ResponseField>
+
+<ResponseField name="display_name" type="Optional[str]">
+  The user's display name. Defaults to Epic Games account name, or external auth display name if no Epic account.
+  
+  <Warning>
+    May be `None` if `fetch_user_data_in_events` is disabled.
+  </Warning>
+</ResponseField>
+
+<ResponseField name="external_auths" type="List[ExternalAuth]">
+  List of external authentication connections (e.g., Xbox, PlayStation). May be empty.
+</ResponseField>
+
+<ResponseField name="epicgames_account" type="bool">
+  Whether the user has an Epic Games account (not just an external platform account).
+  
+  <Warning>
+    May be `False` even for Epic accounts if `fetch_user_data_in_events` is disabled.
+  </Warning>
+</ResponseField>
+
+<ResponseField name="jid" type="str">
+  The user's XMPP JID (Jabber ID) for messaging.
+</ResponseField>
+
+<ResponseField name="disabled" type="bool">
+  Whether the account is disabled (cannot login). Other attributes may not work if `True`.
+</ResponseField>
+
+### Methods
+
+#### fetch
+
+```python
+await user.fetch()
+```
+
+Fetches and updates the user's basic information (e.g., display name).
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+#### fetch_br_stats
+
+```python
+await user.fetch_br_stats(
+    start_time: Optional[DatetimeOrTimestamp] = None,
+    end_time: Optional[DatetimeOrTimestamp] = None
+) -> StatsV2
+```
+
+Fetches the user's Battle Royale stats.
+
+<ParamField path="start_time" type="Optional[Union[int, datetime]]">
+  UTC start time (epoch seconds, datetime, or `Season.start_timestamp`).
+</ParamField>
+
+<ParamField path="end_time" type="Optional[Union[int, datetime]]">
+  UTC end time (epoch seconds, datetime, or `Season.end_timestamp`).
+</ParamField>
+
+<ResponseField name="return" type="StatsV2">
+  Stats object for the user.
+</ResponseField>
+
+**Raises:**
+- `Forbidden` - User has hidden stats in privacy settings
+- `HTTPException` - Request error
+
+---
+
+#### fetch_ranked_stats
+
+```python
+await user.fetch_ranked_stats(
+    season: Optional[Season] = None
+) -> List[CompetitiveRank]
+```
+
+Fetches the user's ranked stats. Works even if stats are set to private.
+
+<ParamField path="season" type="Optional[Season]">
+  The season to get ranks for. Defaults to current season.
+</ParamField>
+
+<ResponseField name="return" type="List[CompetitiveRank]">
+  List of ranks for all game modes in the season.
+</ResponseField>
+
+**Example:**
+```python
+user = await client.fetch_user('6v.')
+ranks = await user.fetch_ranked_stats(season=rebootpy.Season.C5S3)
+
+for rank in ranks:
+    print(f'{rank.ranking_type.name} - {rank.current_division.name}')
+# Output:
+# BATTLE_ROYALE - DIAMOND_2
+# ROCKET_RACING - UNRANKED
+# ZERO_BUILD - UNREAL
+```
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+#### fetch_br_stats_collection
+
+```python
+await user.fetch_br_stats_collection(
+    collection: StatsCollectionType,
+    start_time: Optional[DatetimeOrTimestamp] = None,
+    end_time: Optional[DatetimeOrTimestamp] = None
+) -> StatsCollection
+```
+
+Fetches a predefined stats collection.
+
+<ParamField path="collection" type="StatsCollectionType" required>
+  The predefined stats collection to fetch.
+</ParamField>
+
+<ParamField path="start_time" type="Optional[Union[int, datetime]]">
+  UTC start time.
+</ParamField>
+
+<ParamField path="end_time" type="Optional[Union[int, datetime]]">
+  UTC end time.
+</ParamField>
+
+<ResponseField name="return" type="StatsCollection">
+  The stats collection.
+</ResponseField>
+
+**Raises:**
+- `Forbidden` - User has hidden stats
+- `HTTPException` - Request error
+
+---
+
+#### fetch_battlepass_level
+
+```python
+await user.fetch_battlepass_level(
+    season: Season,
+    start_time: Optional[DatetimeOrTimestamp] = None,
+    end_time: Optional[DatetimeOrTimestamp] = None
+) -> float
+```
+
+Fetches the user's Battle Pass level.
+
+<ParamField path="season" type="Season" required>
+  The season to get the Battle Pass level for.
+</ParamField>
+
+<ParamField path="start_time" type="Optional[Union[int, datetime]]">
+  UTC start time.
+</ParamField>
+
+<ParamField path="end_time" type="Optional[Union[int, datetime]]">
+  UTC end time.
+</ParamField>
+
+<ResponseField name="return" type="Optional[float]">
+  Battle Pass level with decimal progress. `None` if no matches played.
+  
+  Example: `208.63` = Level 208, 63% progress to 209.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+#### fetch_event_tokens
+
+```python
+await user.fetch_event_tokens() -> List[str]
+```
+
+Fetches the user's event tokens.
+
+<ResponseField name="return" type="List[str]">
+  List of event token strings.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+#### fetch_flag
+
+```python
+await user.fetch_flag() -> Optional[Country]
+```
+
+Fetches the user's flag (country).
+
+<ResponseField name="return" type="Optional[Country]">
+  The user's country flag enum, or `None` if not set.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+#### block
+
+```python
+await user.block()
+```
+
+Blocks this user.
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+#### add
+
+```python
+await user.add()
+```
+
+Sends a friend request to this user, or accepts their pending request.
+
+**Raises:**
+- `NotFound` - User does not exist
+- `DuplicateFriendship` - Already friends
+- `FriendshipRequestAlreadySent` - Request already pending
+- `MaxFriendshipsExceeded` - Client hit friendship limit
+- `InviteeMaxFriendshipsExceeded` - User hit friendship limit
+- `InviteeMaxFriendshipRequestsExceeded` - User hit request limit
+- `Forbidden` - Cannot send request due to user settings
+- `HTTPException` - Request error
+
+---
+
+## ClientUser
+
+Represents the client's own user account. Extends `User` with additional account information.
+
+### Additional Attributes
+
+<ResponseField name="age_group" type="str">
+  The age group of the user.
+</ResponseField>
+
+<ResponseField name="can_update_display_name" type="bool">
+  Whether the user can update their display name.
+</ResponseField>
+
+<ResponseField name="country" type="str">
+  The country the user was registered in.
+</ResponseField>
+
+<ResponseField name="email" type="Optional[str]">
+  The user's email address. `None` for headless accounts.
+</ResponseField>
+
+<ResponseField name="failed_login_attempts" type="int">
+  Number of failed login attempts.
+</ResponseField>
+
+<ResponseField name="headless" type="bool">
+  Whether the account is headless (no Epic Games account linked).
+</ResponseField>
+
+<ResponseField name="last_login" type="Optional[datetime]">
+  UTC timestamp of last login. `None` if never logged in.
+</ResponseField>
+
+<ResponseField name="name" type="Optional[str]">
+  First name. `None` for headless accounts.
+</ResponseField>
+
+<ResponseField name="first_name" type="Optional[str]">
+  Alias for `name`.
+</ResponseField>
+
+<ResponseField name="last_name" type="Optional[str]">
+  Last name. `None` for headless accounts.
+</ResponseField>
+
+<ResponseField name="full_name" type="Optional[str]">
+  Full name (first + last). `None` for headless accounts.
+</ResponseField>
+
+<ResponseField name="number_of_display_name_changes" type="int">
+  Number of times display name has been changed.
+</ResponseField>
+
+<ResponseField name="preferred_language" type="str">
+  User's preferred language.
+</ResponseField>
+
+<ResponseField name="tfa_enabled" type="bool">
+  Whether two-factor authentication is enabled.
+</ResponseField>
+
+<ResponseField name="email_verified" type="bool">
+  Whether the email has been verified.
+</ResponseField>
+
+<ResponseField name="minor_verified" type="bool">
+  Whether the account has been verified as run by a minor.
+</ResponseField>
+
+<ResponseField name="minor_expected" type="bool">
+  Whether the account is expected to be run by a minor.
+</ResponseField>
+
+<ResponseField name="minor_status" type="str">
+  The minor status of the account.
+</ResponseField>
+
+### Additional Properties
+
+<ResponseField name="jid" type="str">
+  The full JID including resource part (from XMPP client).
+</ResponseField>
+
+---
+
+## BlockedUser
+
+Represents a blocked user. Extends `User`.
+
+### Methods
+
+#### unblock
+
+```python
+await blocked_user.unblock()
+```
+
+Unblocks this user.
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+## UserSearchEntry
+
+Represents a user entry from a user search. Extends `User`.
+
+### Additional Attributes
+
+<ResponseField name="matches" type="List[Tuple[str, UserSearchPlatform]]">
+  List of (display_name, platform) tuples that matched the search.
+  
+  Example: `[('Tfue', UserSearchPlatform.EPIC_GAMES)]`
+</ResponseField>
+
+<ResponseField name="match_type" type="UserSearchMatchType">
+  The type of match (exact, prefix, etc.).
+</ResponseField>
+
+<ResponseField name="mutual_friend_count" type="int">
+  Number of Epic Games mutual friends with the client.
+</ResponseField>
+
+---
+
+## SacSearchEntryUser
+
+Represents a user from a Support-A-Creator code search. Extends `User`.
+
+### Additional Attributes
+
+<ResponseField name="slug" type="str">
+  The creator code (slug) that matched.
+</ResponseField>
+
+<ResponseField name="active" type="bool">
+  Whether the creator code is currently active.
+</ResponseField>
+
+<ResponseField name="verified" type="bool">
+  Whether the creator code is verified.
+</ResponseField>
+
+---
+
+## ExternalAuth
+
+Represents an external authentication connection (e.g., Xbox, PlayStation).
+
+### Attributes
+
+<ResponseField name="client" type="BasicClient">
+  The client instance.
+</ResponseField>
+
+<ResponseField name="type" type="str">
+  The platform type (e.g., "xbl", "psn").
+</ResponseField>
+
+<ResponseField name="id" type="str">
+  The user's Fortnite account ID.
+</ResponseField>
+
+<ResponseField name="external_id" type="Optional[str]">
+  The user's ID on the external platform. May be `None`.
+</ResponseField>
+
+<ResponseField name="external_display_name" type="Optional[str]">
+  The user's display name on the external platform. May be `None`.
+</ResponseField>
+
+<ResponseField name="extra_info" type="Dict[str, Any]">
+  Additional information from the API. Usually empty except for `ClientUser`.
+</ResponseField>
+
+---
+
+## Example Usage
+
+### Fetching and Using User Data
+
+```python
+import rebootpy
+
+client = rebootpy.BasicClient(
+    auth=rebootpy.DeviceAuth(...)
+)
+
+@client.event
+async def event_ready():
+    # Fetch user
+    user = await client.fetch_user('Ninja')
+    
+    if user:
+        print(f'Display Name: {user.display_name}')
+        print(f'ID: {user.id}')
+        print(f'Epic Account: {user.epicgames_account}')
+        
+        # Fetch stats
+        try:
+            stats = await user.fetch_br_stats()
+            print(f'Stats: {stats.get_stats()}')
+        except rebootpy.Forbidden:
+            print('User has hidden stats')
+        
+        # Fetch ranked stats (works even with private stats)
+        ranks = await user.fetch_ranked_stats(
+            season=rebootpy.Season.C5S3
+        )
+        for rank in ranks:
+            print(f'{rank.ranking_type.name}: {rank.current_division.name}')
+        
+        # Check external auths
+        for auth in user.external_auths:
+            print(f'{auth.type}: {auth.external_display_name}')
+    
+    await client.close()
+
+client.run()
+```
+
+### Working with ClientUser
+
+```python
+@client.event
+async def event_ready():
+    # Access client user info
+    print(f'Logged in as: {client.user.display_name}')
+    print(f'Email: {client.user.email}')
+    print(f'Country: {client.user.country}')
+    print(f'2FA Enabled: {client.user.tfa_enabled}')
+    print(f'Headless: {client.user.headless}')
+```
+
+### Blocking Users
+
+```python
+# Block a user
+user = await client.fetch_user('ToxicPlayer123')
+if user:
+    await user.block()
+    print(f'Blocked {user.display_name}')
+
+# Unblock a user
+for blocked in client.blocked_users:
+    if blocked.display_name == 'ToxicPlayer123':
+        await blocked.unblock()
+        print(f'Unblocked {blocked.display_name}')
+```

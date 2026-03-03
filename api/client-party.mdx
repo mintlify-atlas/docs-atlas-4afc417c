@@ -1,0 +1,289 @@
+---
+title: "ClientParty"
+description: "ClientParty class API reference"
+---
+
+## ClientParty
+
+Represents the ClientUser's party.
+
+### Attributes
+
+<ParamField path="client" type="Client">
+  The client instance.
+</ParamField>
+
+<ParamField path="id" type="str">
+  The party's ID.
+</ParamField>
+
+<ParamField path="me" type="ClientPartyMember">
+  The client's party member object.
+</ParamField>
+
+<ParamField path="members" type="List[PartyMember]">
+  A copied list of the members currently in this party.
+</ParamField>
+
+<ParamField path="member_count" type="int">
+  The amount of members currently in this party.
+</ParamField>
+
+<ParamField path="leader" type="PartyMember">
+  The leader of the party.
+</ParamField>
+
+<ParamField path="privacy" type="PartyPrivacy">
+  The currently set privacy of this party.
+</ParamField>
+
+<ParamField path="region" type="Region">
+  The currently set region of this party.
+</ParamField>
+
+<ParamField path="squad_fill" type="bool">
+  `True` if squad fill is enabled, else `False`.
+</ParamField>
+
+### Methods
+
+#### send
+
+```python
+async def send(content: str) -> None
+```
+
+Sends a message to this party's chat.
+
+<ParamField path="content" type="str" required>
+  The content of the message, up to 256 characters.
+</ParamField>
+
+**Raises:**
+- `ChatError` - Content is longer than 256 characters or the client is in a party on its own.
+
+#### edit
+
+```python
+async def edit(*coros: List[Union[Awaitable, functools.partial]]) -> None
+```
+
+Edits multiple meta parts at once.
+
+<ParamField path="*coros" type="Union[Awaitable, functools.partial]" required>
+  A list of coroutines that should be included in the edit.
+</ParamField>
+
+**Example:**
+```python
+from functools import partial
+
+async def edit_party():
+    party = client.party
+    await party.edit(
+        party.set_privacy(rebootpy.PartyPrivacy.PRIVATE),
+        partial(party.set_custom_key, 'myawesomekey')
+    )
+```
+
+**Raises:**
+- `HTTPException` - Something went wrong while editing.
+
+#### edit_and_keep
+
+```python
+async def edit_and_keep(*coros: List[functools.partial]) -> None
+```
+
+Edits multiple meta parts at once and keeps the changes for when new parties are created.
+
+<ParamField path="*coros" type="functools.partial" required>
+  A list of partials of coroutines that should be included in the edit.
+</ParamField>
+
+**Example:**
+```python
+from functools import partial
+
+async def edit_and_keep_party():
+    party = client.party
+    await party.edit_and_keep(
+        partial(party.set_custom_key, 'myawesomekey'),
+        partial(party.set_playlist, 'Playlist_PlaygroundV2')
+    )
+```
+
+**Raises:**
+- `HTTPException` - Something went wrong while editing.
+
+#### invite
+
+```python
+async def invite(user_id: str) -> SentPartyInvitation
+```
+
+Invites a user to the party.
+
+<ParamField path="user_id" type="str" required>
+  The ID of the user to invite.
+</ParamField>
+
+<ResponseField name="return" type="SentPartyInvitation">
+  Object representing the sent party invitation.
+</ResponseField>
+
+**Raises:**
+- `PartyError` - User is already in your party or the party is full.
+- `Forbidden` - The invited user is not friends with the client.
+- `HTTPException` - Something else went wrong when trying to invite the user.
+
+#### fetch_invites
+
+```python
+async def fetch_invites() -> List[SentPartyInvitation]
+```
+
+Fetches all active invitations sent from the party.
+
+<Warning>
+  Because of an error on Fortnite's end, this method only returns invites sent from other party members if the party is private. However it will always return invites sent from the client regardless of party privacy.
+</Warning>
+
+<ResponseField name="return" type="List[SentPartyInvitation]">
+  A list of all sent invites from the party.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting from Fortnite's services.
+
+#### set_privacy
+
+```python
+async def set_privacy(privacy: PartyPrivacy) -> None
+```
+
+Sets the privacy of the party.
+
+<ParamField path="privacy" type="PartyPrivacy" required>
+  The privacy setting to apply.
+</ParamField>
+
+**Raises:**
+- `Forbidden` - The client is not the leader of the party.
+
+#### set_region
+
+```python
+async def set_region(region: Region) -> None
+```
+
+Sets the current region of the party.
+
+<ParamField path="region" type="Region" required>
+  The region to use.
+</ParamField>
+
+**Example:**
+```python
+await party.set_region(region=rebootpy.Region.EUROPE)
+```
+
+**Raises:**
+- `Forbidden` - The client is not the leader of the party.
+
+#### set_custom_key
+
+```python
+async def set_custom_key(key: str) -> None
+```
+
+Sets the custom key of the party.
+
+<ParamField path="key" type="str" required>
+  The key to set.
+</ParamField>
+
+**Raises:**
+- `Forbidden` - The client is not the leader of the party.
+
+#### set_fill
+
+```python
+async def set_fill(value: bool) -> None
+```
+
+Sets the fill status of the party.
+
+<ParamField path="value" type="bool" required>
+  What to set the fill status to. `True` sets it to 'Fill', `False` sets it to 'NoFill'.
+</ParamField>
+
+**Raises:**
+- `Forbidden` - The client is not the leader of the party.
+
+#### set_max_size
+
+```python
+async def set_max_size(size: int) -> None
+```
+
+Sets a new max size of the party.
+
+<ParamField path="size" type="int" required>
+  The size to set. Must be more than the current member count, more than or equal to 1 or less than or equal to 16.
+</ParamField>
+
+**Raises:**
+- `Forbidden` - The client is not the leader of the party.
+- `PartyError` - The new size was lower than the current member count.
+- `PartyError` - The new size was not within valid range (1-16).
+
+#### set_playlist
+
+```python
+async def set_playlist(playlist: str = "", version: int = -1) -> None
+```
+
+Sets the current playlist of the party.
+
+<ParamField path="playlist" type="str">
+  The playlist ID or island code. Defaults to empty string.
+</ParamField>
+
+<ParamField path="version" type="int">
+  The version of the playlist/island. Defaults to `-1` which is latest.
+</ParamField>
+
+**Examples:**
+```python
+# Set to Duos
+await party.set_playlist(playlist='Playlist_DefaultDuo')
+
+# Set to a creative island
+await party.set_playlist(playlist='0363-4024-8917')
+```
+
+#### set_squad_assignments
+
+```python
+async def set_squad_assignments(assignments: Dict[PartyMember, SquadAssignment]) -> None
+```
+
+Sets squad assignments for members of the party.
+
+<ParamField path="assignments" type="Dict[PartyMember, SquadAssignment]" required>
+  Pre-defined assignments to set. If a member is missing from this dict, they will be automatically added to the final request.
+</ParamField>
+
+**Example:**
+```python
+{
+    member1: rebootpy.SquadAssignment(position=5),
+    member2: rebootpy.SquadAssignment(hidden=True)
+}
+```
+
+**Raises:**
+- `ValueError` - Duplicate positions were set in the assignments.
+- `Forbidden` - You are not the leader of the party.
+- `HTTPException` - An error occurred while requesting.

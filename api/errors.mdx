@@ -1,0 +1,388 @@
+---
+title: Exceptions
+description: Exception classes raised by rebootpy
+---
+
+All exceptions in rebootpy inherit from the base `FortniteException` class. This allows you to catch all library-specific exceptions by catching the base exception.
+
+## FortniteException
+
+Base exception for all rebootpy errors.
+
+```python
+try:
+    await client.start()
+except rebootpy.FortniteException:
+    print("A rebootpy error occurred")
+```
+
+All other exceptions inherit from this class, so catching this exception will catch all library-specific errors.
+
+## AuthException
+
+Raised when authentication fails due to invalid credentials or other authentication-related issues.
+
+### Attributes
+
+<ResponseField name="original" type="FortniteException">
+  The original exception that was raised. Always inherits from `FortniteException`.
+</ResponseField>
+
+### Example
+
+```python
+try:
+    await client.start()
+except rebootpy.AuthException as e:
+    print(f"Authentication failed: {e}")
+    print(f"Original error: {e.original}")
+```
+
+## HTTPException
+
+Raised when an HTTP error is received from Fortnite services. This is one of the most common exceptions you'll encounter.
+
+### Attributes
+
+<ResponseField name="response" type="aiohttp.ClientResponse">
+  The HTTP response object from the request.
+</ResponseField>
+
+<ResponseField name="text" type="str">
+  A formatted error message.
+</ResponseField>
+
+<ResponseField name="status" type="int">
+  The HTTP status code of the response.
+</ResponseField>
+
+<ResponseField name="route" type="Union[Route, str]">
+  The route or URL that was used for the request.
+</ResponseField>
+
+<ResponseField name="raw" type="Union[str, dict]">
+  The raw message or data received from Fortnite services.
+</ResponseField>
+
+<ResponseField name="request_headers" type="dict">
+  The headers that were used in the request.
+</ResponseField>
+
+<ResponseField name="message" type="str">
+  The error message from Fortnite services.
+</ResponseField>
+
+<ResponseField name="message_code" type="Optional[str]">
+  The error code from Fortnite services.
+</ResponseField>
+
+<ResponseField name="message_vars" type="List[str]">
+  Arguments passed to the error message.
+</ResponseField>
+
+<ResponseField name="code" type="Optional[int]">
+  The numeric error code from Fortnite services.
+</ResponseField>
+
+<ResponseField name="originating_service" type="Optional[str]">
+  The service that originated the error.
+</ResponseField>
+
+<ResponseField name="intent" type="Optional[str]">
+  The product/environment the error was received from.
+</ResponseField>
+
+<ResponseField name="validation_failures" type="Optional[List[ValidationFailure]]">
+  List of validation failures if the error was due to validation issues. `None` otherwise.
+</ResponseField>
+
+### Example
+
+```python
+try:
+    user = await client.fetch_profile("invalid_id")
+except rebootpy.HTTPException as e:
+    print(f"HTTP Error: {e.status}")
+    print(f"Message: {e.message}")
+    print(f"Code: {e.message_code}")
+```
+
+## ValidationFailure
+
+Represents a validation failure returned by Fortnite services. This is not raised directly but is included in `HTTPException.validation_failures`.
+
+### Attributes
+
+<ResponseField name="field_name" type="str">
+  The name of the field that failed validation.
+</ResponseField>
+
+<ResponseField name="invalid_value" type="str">
+  The value that was considered invalid.
+</ResponseField>
+
+<ResponseField name="message" type="str">
+  A message explaining why the field value was invalid.
+</ResponseField>
+
+<ResponseField name="message_code" type="str">
+  The raw error message code.
+</ResponseField>
+
+<ResponseField name="message_vars" type="Dict[str, str]">
+  Variables associated with the error message.
+</ResponseField>
+
+### Example
+
+```python
+try:
+    await party.set_custom_key("invalid_key", "value")
+except rebootpy.HTTPException as e:
+    if e.validation_failures:
+        for failure in e.validation_failures:
+            print(f"Field '{failure.field_name}' is invalid: {failure.message}")
+```
+
+## EventError
+
+Raised when something goes wrong with event handling.
+
+```python
+try:
+    # Event-related operation
+    pass
+except rebootpy.EventError as e:
+    print(f"Event error: {e}")
+```
+
+## XMPPError
+
+Raised when an error occurs with the XMPP (chat/presence) service.
+
+```python
+try:
+    await client.xmpp.send_presence()
+except rebootpy.XMPPError as e:
+    print(f"XMPP error: {e}")
+```
+
+## PartyError
+
+Raised when a party-related operation fails.
+
+```python
+try:
+    await party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+except rebootpy.PartyError as e:
+    print(f"Party error: {e}")
+```
+
+## PartyIsFull
+
+Raised when attempting to join a party that is already full.
+
+```python
+try:
+    await party.join()
+except rebootpy.PartyIsFull:
+    print("Cannot join party - it's full")
+```
+
+## Forbidden
+
+Raised when attempting an action that your account doesn't have permission to perform.
+
+```python
+try:
+    await client.fetch_private_data(user_id)
+except rebootpy.Forbidden:
+    print("You don't have permission to perform this action")
+```
+
+## NotFound
+
+Raised when a requested resource is not found by Fortnite services.
+
+```python
+try:
+    user = await client.fetch_profile("nonexistent_user")
+except rebootpy.NotFound:
+    print("User not found")
+```
+
+## NoMoreItems
+
+Raised when an iterator has no more items to yield.
+
+```python
+try:
+    async for friend in client.fetch_friends():
+        print(friend.display_name)
+except rebootpy.NoMoreItems:
+    print("No more friends to fetch")
+```
+
+## Friendship Exceptions
+
+Multiple exceptions related to friend operations.
+
+### DuplicateFriendship
+
+Raised when attempting to add a user who is already a friend.
+
+```python
+try:
+    await client.add_friend(user_id)
+except rebootpy.DuplicateFriendship:
+    print("Already friends with this user")
+```
+
+### FriendshipRequestAlreadySent
+
+Raised when attempting to send a friend request to a user who has already received one from you.
+
+```python
+try:
+    await client.add_friend(user_id)
+except rebootpy.FriendshipRequestAlreadySent:
+    print("Friend request already sent to this user")
+```
+
+### MaxFriendshipsExceeded
+
+Raised when the client has reached the maximum number of friends.
+
+```python
+try:
+    await client.add_friend(user_id)
+except rebootpy.MaxFriendshipsExceeded:
+    print("You have reached the maximum number of friends")
+```
+
+### InviteeMaxFriendshipsExceeded
+
+Raised when the user you're trying to add has reached their maximum number of friends.
+
+```python
+try:
+    await client.add_friend(user_id)
+except rebootpy.InviteeMaxFriendshipsExceeded:
+    print("This user has reached their maximum number of friends")
+```
+
+### InviteeMaxFriendshipRequestsExceeded
+
+Raised when the user you're trying to add has too many pending friend requests.
+
+```python
+try:
+    await client.add_friend(user_id)
+except rebootpy.InviteeMaxFriendshipRequestsExceeded:
+    print("This user has too many pending friend requests")
+```
+
+### FriendOffline
+
+Raised when attempting an action that requires a friend to be online, but they're offline.
+
+```python
+try:
+    await friend.invite()
+except rebootpy.FriendOffline:
+    print("Friend is offline")
+```
+
+## InvalidOffer
+
+Raised when an invalid or outdated item shop offer is used. Only offers currently in the item shop are valid.
+
+```python
+try:
+    await client.purchase_offer(offer_id)
+except rebootpy.InvalidOffer:
+    print("This offer is no longer available")
+```
+
+## ChatError
+
+Raised when there's an issue with the chat service, such as:
+- Message is too long
+- Attempting to send a message to an empty party
+- Other chat-related errors
+
+```python
+try:
+    await party.send("x" * 5000)  # Message too long
+except rebootpy.ChatError as e:
+    print(f"Chat error: {e}")
+```
+
+## Exception Hierarchy
+
+All exceptions follow this hierarchy:
+
+```
+FortniteException
+├── AuthException
+├── EventError
+├── XMPPError
+├── PartyError
+├── PartyIsFull
+├── Forbidden
+├── NotFound
+├── NoMoreItems
+├── DuplicateFriendship
+├── FriendshipRequestAlreadySent
+├── MaxFriendshipsExceeded
+├── InviteeMaxFriendshipsExceeded
+├── InviteeMaxFriendshipRequestsExceeded
+├── FriendOffline
+├── InvalidOffer
+├── ChatError
+└── HTTPException
+```
+
+## Best Practices
+
+### Catch Specific Exceptions
+
+```python
+try:
+    await client.add_friend(user_id)
+except rebootpy.DuplicateFriendship:
+    print("Already friends")
+except rebootpy.MaxFriendshipsExceeded:
+    print("Friend list is full")
+except rebootpy.NotFound:
+    print("User not found")
+except rebootpy.HTTPException as e:
+    print(f"HTTP error: {e.status}")
+except rebootpy.FortniteException as e:
+    print(f"Other error: {e}")
+```
+
+### Handle Authentication Errors
+
+```python
+try:
+    await client.start()
+except rebootpy.AuthException as e:
+    print(f"Failed to authenticate: {e}")
+    if isinstance(e.original, rebootpy.HTTPException):
+        print(f"Status code: {e.original.status}")
+```
+
+### Check Validation Failures
+
+```python
+try:
+    await some_operation()
+except rebootpy.HTTPException as e:
+    if e.validation_failures:
+        print("Validation errors:")
+        for failure in e.validation_failures:
+            print(f"  - {failure.field_name}: {failure.message}")
+    else:
+        print(f"HTTP error: {e.message}")
+```

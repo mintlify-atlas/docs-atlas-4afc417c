@@ -1,0 +1,245 @@
+---
+title: "Party Configuration Classes"
+description: "DefaultPartyConfig and DefaultPartyMemberConfig classes"
+---
+
+## DefaultPartyConfig
+
+Data class for the default party configuration used when a new party is created.
+
+### Parameters
+
+<ParamField path="privacy" type="Optional[PartyPrivacy]">
+  The party privacy that should be used. Defaults to `PartyPrivacy.PUBLIC`.
+</ParamField>
+
+<ParamField path="max_size" type="Optional[int]">
+  The maximum party size. Valid party sizes must use a value between 1 and 16. Defaults to `16`.
+</ParamField>
+
+<ParamField path="chat_enabled" type="Optional[bool]">
+  Whether or not the party chat should be enabled for the party. Defaults to `True`.
+</ParamField>
+
+<ParamField path="team_change_allowed" type="bool">
+  Whether or not players should be able to manually swap party team with another player. This setting only works if the client is the leader of the party. Defaults to `True`.
+</ParamField>
+
+<ParamField path="default_squad_assignment" type="SquadAssignment">
+  The default squad assignment to use for new members. Squad assignments hold information about a party member's current position and visibility. Note that setting a position in the default squad assignment doesn't actually do anything and it will just be overridden. Defaults to `SquadAssignment(hidden=False)`.
+</ParamField>
+
+<ParamField path="position_priorities" type="List[int]">
+  A list of exactly 16 ints all ranging from 0-15. When a new member joins the party or a member is not defined in a squad assignment request, it will automatically give the first available position in this list. Defaults to a list of 0-15 in order.
+</ParamField>
+
+<ParamField path="reassign_positions_on_size_change" type="bool">
+  Whether or not positions should be automatically reassigned if the party size changes. Set this to `False` if you want members to keep their positions unless manually changed. The reassignment is done according to the position priorities. Defaults to `True`.
+</ParamField>
+
+<ParamField path="joinability" type="Optional[PartyJoinability]">
+  The joinability configuration that should be used. Defaults to `PartyJoinability.OPEN`.
+</ParamField>
+
+<ParamField path="discoverability" type="Optional[PartyDiscoverability]">
+  The discoverability configuration that should be used. Defaults to `PartyDiscoverability.ALL`.
+</ParamField>
+
+<ParamField path="invite_ttl" type="Optional[int]">
+  How many seconds the invite should be valid for before automatically becoming invalid. Defaults to `14400`.
+</ParamField>
+
+<ParamField path="intention_ttl" type="Optional[int]">
+  How many seconds an intention should last. Defaults to `60`.
+</ParamField>
+
+<ParamField path="sub_type" type="Optional[str]">
+  The sub type the party should use. Defaults to `'default'`.
+</ParamField>
+
+<ParamField path="party_type" type="Optional[str]">
+  The type of the party. Defaults to `'DEFAULT'`.
+</ParamField>
+
+<ParamField path="cls" type="Type[ClientParty]">
+  The default party object to use for the client's party. Here you can specify all class objects that inherit from `ClientParty`.
+</ParamField>
+
+<ParamField path="meta" type="List[functools.partial]">
+  A list of coroutines in the form of partials. This config will be automatically equipped by the party when a new party is created by the client.
+</ParamField>
+
+**Example:**
+```python
+from rebootpy import ClientParty
+from functools import partial
+
+default_config = DefaultPartyConfig(
+    meta=[
+        partial(ClientParty.set_custom_key, 'myawesomekey'),
+        partial(ClientParty.set_playlist, 'Playlist_PlaygroundV2')
+    ]
+)
+```
+
+### Attributes
+
+<ParamField path="team_change_allowed" type="bool">
+  Whether or not players are able to manually swap party team with another player.
+</ParamField>
+
+<ParamField path="default_squad_assignment" type="SquadAssignment">
+  The default squad assignment to use for new members and members not specified in manual squad assignments requests.
+</ParamField>
+
+<ParamField path="position_priorities" type="List[int]">
+  A list containing exactly 16 integers ranging from 0-16 with no duplicates. This is used for position assignments.
+</ParamField>
+
+<ParamField path="reassign_positions_on_size_change" type="bool">
+  Whether or not positions will be automatically reassigned when the party size changes.
+</ParamField>
+
+<ParamField path="cls" type="Type[ClientParty]">
+  The default party object used to represent the client's party.
+</ParamField>
+
+### Methods
+
+#### update
+
+```python
+def update(config: Dict[str, Any]) -> None
+```
+
+Updates the configuration with new values.
+
+<ParamField path="config" type="Dict[str, Any]" required>
+  Dictionary of configuration values to update.
+</ParamField>
+
+#### update_meta
+
+```python
+def update_meta(meta: List[functools.partial]) -> None
+```
+
+Updates the meta configuration.
+
+<ParamField path="meta" type="List[functools.partial]" required>
+  List of partials to update the meta with.
+</ParamField>
+
+---
+
+## DefaultPartyMemberConfig
+
+Data class for the default party member configuration used when the client joins a party.
+
+### Parameters
+
+<ParamField path="cls" type="Type[ClientPartyMember]">
+  The default party member object to use to represent the client as a party member. Here you can specify all classes that inherit from `ClientPartyMember`. Defaults to `ClientPartyMember`.
+</ParamField>
+
+<ParamField path="yield_leadership" type="bool">
+  Whether or not the client should promote another member automatically whenever there is a chance to. Defaults to `False`.
+</ParamField>
+
+<ParamField path="offline_ttl" type="int">
+  How long the client should stay in the party disconnected state before expiring when the XMPP connection is lost. Defaults to `30`.
+</ParamField>
+
+<ParamField path="meta" type="List[functools.partial]">
+  A list of coroutines in the form of partials. This config will be automatically equipped by the bot when joining new parties.
+</ParamField>
+
+**Example:**
+```python
+from rebootpy import ClientPartyMember
+from functools import partial
+
+default_config = DefaultPartyMemberConfig(
+    meta=[
+        partial(ClientPartyMember.set_outfit, 'CID_175_Athena_Commando_M_Celestial'),
+        partial(ClientPartyMember.set_banner, icon="OtherBanner28", season_level=100)
+    ]
+)
+```
+
+### Attributes
+
+<ParamField path="cls" type="Type[ClientPartyMember]">
+  The default party member object used when representing the client as a party member.
+</ParamField>
+
+<ParamField path="yield_leadership" type="bool">
+  Whether or not the client promotes another member automatically whenever there is a chance to.
+</ParamField>
+
+<ParamField path="offline_ttl" type="int">
+  How long the client will stay in the party disconnected state before expiring when the XMPP connection is lost.
+</ParamField>
+
+### Methods
+
+#### update_meta
+
+```python
+def update_meta(meta: List[functools.partial]) -> None
+```
+
+Updates the meta configuration.
+
+<ParamField path="meta" type="List[functools.partial]" required>
+  List of partials to update the meta with.
+</ParamField>
+
+---
+
+## SquadAssignment
+
+Represents a party member's squad assignment. A squad assignment is basically a piece of information about which position a member has in the party, which is directly related to party teams.
+
+### Parameters
+
+<ParamField path="position" type="Optional[int]">
+  The position a member should have in the party. If no position is passed, a position will be automatically given according to the position priorities set.
+</ParamField>
+
+<ParamField path="hidden" type="bool">
+  Whether or not the member should be hidden in the party.
+</ParamField>
+
+<Warning>
+  Being hidden is not a native Fortnite feature so be careful when using this. It might lead to undesirable results.
+</Warning>
+
+### Attributes
+
+<ParamField path="position" type="Optional[int]">
+  The position of the member in the party.
+</ParamField>
+
+<ParamField path="hidden" type="bool">
+  Whether the member is hidden in the party.
+</ParamField>
+
+### Methods
+
+#### copy
+
+```python
+@classmethod
+def copy(cls, assignment: SquadAssignment) -> SquadAssignment
+```
+
+Creates a copy of a squad assignment.
+
+<ParamField path="assignment" type="SquadAssignment" required>
+  The squad assignment to copy.
+</ParamField>
+
+<ResponseField name="return" type="SquadAssignment">
+  A new SquadAssignment instance with the same values.
+</ResponseField>

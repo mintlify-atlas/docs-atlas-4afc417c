@@ -1,0 +1,364 @@
+---
+title: Running multiple clients
+description: Learn how to run and manage multiple rebootpy clients simultaneously
+---
+
+Rebootpy supports running multiple clients (accounts) simultaneously, which is useful for coordinating multiple bots or testing interactions.
+
+## Basic setup
+
+Use `run_multiple()` to start multiple clients:
+
+```python
+import rebootpy
+
+# Create client instances
+client1 = rebootpy.Client(
+    auth=rebootpy.DeviceAuth(
+        account_id='account1_id',
+        device_id='device1_id',
+        secret='secret1'
+    )
+)
+
+client2 = rebootpy.Client(
+    auth=rebootpy.DeviceAuth(
+        account_id='account2_id',
+        device_id='device2_id',
+        secret='secret2'
+    )
+)
+
+# Run both clients
+rebootpy.run_multiple(clients=[client1, client2])
+```
+
+## Using ready callbacks
+
+### Per-client ready callback
+
+Execute code when each client becomes ready:
+
+```python
+instances = {}
+
+async def event_sub_ready(client):
+    instances[client.user.id] = client
+    print(f'{client.user.display_name} is ready')
+
+rebootpy.run_multiple(
+    clients=[client1, client2],
+    ready_callback=event_sub_ready
+)
+```
+
+### All clients ready callback
+
+Execute code once all clients are ready:
+
+```python
+async def all_clients_ready():
+    print('All clients are now ready!')
+    print(f'Total clients: {len(instances)}')
+
+rebootpy.run_multiple(
+    clients=[client1, client2],
+    ready_callback=event_sub_ready,
+    all_ready_callback=all_clients_ready
+)
+```
+
+## Event handlers for multiple clients
+
+Register event handlers for each client:
+
+```python
+async def event_sub_friend_request(request):
+    print(f'{request.client.user.display_name} received friend request')
+    await request.accept()
+
+async def event_sub_party_member_join(member):
+    print(f'{member.display_name} joined {member.client.user.display_name}\'s party')
+
+for client in [client1, client2]:
+    client.add_event_handler('friend_request', event_sub_friend_request)
+    client.add_event_handler('party_member_join', event_sub_party_member_join)
+```
+
+## Complete example from source
+
+Here's the actual example from the rebootpy repository:
+
+```python
+import rebootpy
+import asyncio
+import functools
+import os
+import json
+
+instances = {}
+filename = 'device_auths.json'
+
+def get_device_auth_details():
+    with open(filename, 'r') as fp:
+        return json.load(fp)
+
+async def event_sub_ready(client):
+    instances[client.user.id] = client
+    print(f'Bot ready as {client.user.display_name} ({client.user.id}).')
+
+async def event_sub_friend_request(request):
+    print('{0.client.user.display_name} received a friend request.'.format(request))
+    await request.accept()
+
+async def event_sub_party_member_join(member):
+    print("{0.display_name} joined {0.client.user.display_name}'s party.".format(member))
+
+clients = []
+device_auths = get_device_auth_details()
+for account, device_auth in device_auths.items():
+    client = rebootpy.Client(
+        auth=rebootpy.DeviceAuth(**device_auth),
+        default_party_member_config=rebootpy.DefaultPartyMemberConfig(
+            meta=(
+                functools.partial(
+                    rebootpy.ClientPartyMember.set_outfit,
+                    'CID_175_Athena_Commando_M_Celestial'
+                ),
+            )
+        )
+    )
+    
+    # Register events
+    client.add_event_handler('friend_request', event_sub_friend_request)
+    client.add_event_handler('party_member_join', event_sub_party_member_join)
+    
+    clients.append(client)
+
+rebootpy.run_multiple(
+    clients,
+    ready_callback=event_sub_ready,
+    all_ready_callback=lambda: print('All clients ready')
+)
+```
+
+## Managing clients
+
+### Accessing specific clients
+
+Store clients in a dictionary for easy access:
+
+```python
+clients_by_name = {}
+
+async def event_sub_ready(client):
+    clients_by_name[client.user.display_name] = client
+    print(f'{client.user.display_name} ready')
+
+# Later, access by name
+main_client = clients_by_name.get('MainBot')
+if main_client:
+    await main_client.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+```
+
+### Tracking client state
+
+```python
+client_stats = {}
+
+async def event_sub_ready(client):
+    client_stats[client.user.id] = {
+        'name': client.user.display_name,
+        'friends_count': len(client.friends),
+        'party_size': client.party.member_count,
+        'online': True
+    }
+```
+
+## Inter-client communication
+
+### Making clients interact
+
+```python
+async def event_sub_ready(client):
+    instances[client.user.id] = client
+
+async def all_clients_ready():
+    # Get client references
+    client_list = list(instances.values())
+    
+    if len(client_list) >= 2:
+        client1 = client_list[0]
+        client2 = client_list[1]
+        
+        # Make them friends
+        try:
+            await client1.add_friend(client2.user.id)
+        except rebootpy.DuplicateFriendship:
+            pass
+        
+        # Join same party
+        await client2.join_party(client1.party.id)
+```
+
+### Party coordination
+
+```python
+async def all_clients_ready():
+    clients = list(instances.values())
+    
+    # Set first client as party leader
+    leader = clients[0]
+    await leader.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+    
+    # Have all other clients join the leader's party
+    for client in clients[1:]:
+        try:
+            await client.join_party(leader.party.id)
+        except Exception as e:
+            print(f'Failed to join party: {e}')
+```
+
+## Advanced usage
+
+### Different configurations per client
+
+```python
+configs = [
+    {
+        'outfit': 'CID_175_Athena_Commando_M_Celestial',
+        'privacy': rebootpy.PartyPrivacy.PUBLIC
+    },
+    {
+        'outfit': 'CID_028_Athena_Commando_F',
+        'privacy': rebootpy.PartyPrivacy.PRIVATE
+    }
+]
+
+clients = []
+for i, config in enumerate(configs):
+    client = rebootpy.Client(
+        auth=rebootpy.DeviceAuth(**device_auths[i]),
+        default_party_config=rebootpy.DefaultPartyConfig(
+            privacy=config['privacy']
+        ),
+        default_party_member_config=rebootpy.DefaultPartyMemberConfig(
+            meta=(
+                functools.partial(
+                    rebootpy.ClientPartyMember.set_outfit,
+                    config['outfit']
+                ),
+            )
+        )
+    )
+    clients.append(client)
+```
+
+### Manual start/stop
+
+For more control, use `start_multiple()` and manage the event loop:
+
+```python
+import asyncio
+
+async def main():
+    # Start all clients
+    tasks = await rebootpy.start_multiple(
+        clients=[client1, client2],
+        ready_callback=event_sub_ready
+    )
+    
+    # Do something while clients run
+    await asyncio.sleep(60)
+    
+    # Stop all clients
+    await rebootpy.close_multiple(clients=[client1, client2])
+
+asyncio.run(main())
+```
+
+### Context manager approach
+
+```python
+async def main():
+    async with client1, client2:
+        # Clients are started automatically
+        await asyncio.sleep(60)
+        # Clients are closed automatically on exit
+```
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Use device auth for persistence">
+    When running multiple clients, always use DeviceAuth to avoid repeated manual authentication:
+
+    ```python
+    auth=rebootpy.DeviceAuth(**credentials)
+    ```
+  </Accordion>
+
+  <Accordion title="Store credentials securely">
+    Keep device auth credentials in a secure JSON file with appropriate permissions:
+
+    ```python
+    # device_auths.json
+    {
+        "account1": {
+            "account_id": "...",
+            "device_id": "...",
+            "secret": "..."
+        },
+        "account2": { ... }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Track clients with IDs or names">
+    Use dictionaries to track clients for easy reference:
+
+    ```python
+    instances[client.user.id] = client
+    ```
+  </Accordion>
+
+  <Accordion title="Handle errors per client">
+    One client failing shouldn't crash all clients. Use try/except blocks:
+
+    ```python
+    async def event_sub_ready(client):
+        try:
+            # Client-specific setup
+            pass
+        except Exception as e:
+            print(f'Error for {client.user.display_name}: {e}')
+    ```
+  </Accordion>
+
+  <Accordion title="Be mindful of rate limits">
+    Running many clients increases the chance of hitting rate limits. Implement delays between operations:
+
+    ```python
+    for client in clients:
+        await client.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+        await asyncio.sleep(1)  # Small delay
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Client reference" icon="code" href="/api/client">
+    Full Client class documentation
+  </Card>
+  <Card title="Device auth" icon="key" href="/auth/device-auth">
+    Learn about DeviceAuth
+  </Card>
+  <Card title="Events reference" icon="bolt" href="/concepts/events">
+    Understanding events
+  </Card>
+  <Card title="Party management" icon="users" href="/guides/party-management">
+    Managing parties across clients
+  </Card>
+</CardGroup>

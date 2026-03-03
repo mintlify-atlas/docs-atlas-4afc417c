@@ -1,0 +1,217 @@
+---
+title: "Context"
+description: "Context class for command invocation"
+---
+
+## Context
+
+```python
+class Context
+```
+
+Represents the context in which a command is being invoked under.
+
+This class contains a lot of meta data to help you understand more about the invocation context. This class is not created manually and is instead passed around to commands as the first parameter.
+
+### Attributes
+
+<ResponseField name="message" type="Union[FriendMessage, PartyMessage]">
+  The message that triggered the command being executed.
+</ResponseField>
+
+<ResponseField name="bot" type="Bot">
+  The bot that contains the command being executed.
+</ResponseField>
+
+<ResponseField name="args" type="list">
+  The list of transformed arguments that were passed into the command. If this is accessed during the `event_command_error` event then this list could be incomplete.
+</ResponseField>
+
+<ResponseField name="kwargs" type="dict">
+  A dictionary of transformed arguments that were passed into the command. Similar to `args`, if this is accessed in the `event_command_error` event then this dict could be incomplete.
+</ResponseField>
+
+<ResponseField name="prefix" type="str">
+  The prefix that was used to invoke the command.
+</ResponseField>
+
+<ResponseField name="command" type="Command">
+  The command (i.e. `Command` or its subclasses) that is being invoked currently.
+</ResponseField>
+
+<ResponseField name="invoked_with" type="str">
+  The command name that triggered this invocation. Useful for finding out which alias called the command.
+</ResponseField>
+
+<ResponseField name="invoked_subcommand" type="Optional[Command]">
+  The subcommand (i.e. `Command` or its subclasses) that was invoked. If no valid subcommand was invoked then this is equal to `None`.
+</ResponseField>
+
+<ResponseField name="subcommand_passed" type="Optional[str]">
+  The string that was attempted to call a subcommand. This does not have to point to a valid registered subcommand and could just point to a nonsense string. If nothing was passed to attempt a call to a subcommand then this is set to `None`.
+</ResponseField>
+
+<ResponseField name="command_failed" type="bool">
+  A boolean that indicates if the command failed to be parsed, checked, or invoked.
+</ResponseField>
+
+### Properties
+
+<ResponseField name="valid" type="bool">
+  Checks if the invocation context is valid to be invoked with.
+</ResponseField>
+
+<ResponseField name="cog" type="Optional[Cog]">
+  Returns the cog associated with this context's command. `None` if it does not exist.
+</ResponseField>
+
+<ResponseField name="party" type="Optional[ClientParty]">
+  The party this message was sent from. `None` if the message was not sent from a party.
+</ResponseField>
+
+<ResponseField name="author" type="Union[Friend, PartyMember]">
+  The author of the message.
+</ResponseField>
+
+<ResponseField name="friend" type="Optional[Friend]">
+  The `Friend` object for this friend, `None` if the client is not friends with the author.
+</ResponseField>
+
+<ResponseField name="member" type="Optional[PartyMember]">
+  The `PartyMember` object for this friend, `None` if the client is not in the same party as the author.
+</ResponseField>
+
+<ResponseField name="me" type="Union[ClientPartyMember, ClientUser]">
+  Similar to `ClientPartyMember` except that it returns `ClientUser` when not sent from a party.
+</ResponseField>
+
+## Methods
+
+### invoke
+
+```python
+await ctx.invoke(command, *args, **kwargs)
+```
+
+Calls a command with the arguments given.
+
+This is useful if you want to just call the callback that a `Command` holds internally.
+
+**Note:** This does not handle converters, checks, cooldowns, pre-invoke, or after-invoke hooks in any matter. It calls the internal callback directly as-if it was a regular function.
+
+**Warning:** The first parameter passed **must** be the command being invoked.
+
+**Parameters:**
+- `command` (Command): A command or subclass of a command that is going to be called.
+- `*args`: The arguments to use.
+- `**kwargs`: The keyword arguments to use.
+
+**Example:**
+```python
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello!')
+
+@bot.command()
+async def greet(ctx):
+    # Manually invoke the hello command
+    await ctx.invoke(bot.get_command('hello'))
+```
+
+### reinvoke
+
+```python
+await ctx.reinvoke(*, call_hooks=False, restart=True)
+```
+
+Calls the command again.
+
+This is similar to `invoke()` except that it bypasses checks, cooldowns, and error handlers.
+
+**Note:** If you want to bypass `UserInputError` derived exceptions, it is recommended to use the regular `invoke()` as it will work more naturally. After all, this will end up using the old arguments the user has used and will thus just fail again.
+
+**Parameters:**
+- `call_hooks` (bool): Whether to call the before and after invoke hooks.
+- `restart` (bool): Whether to start the call chain from the very beginning or where we left off (i.e. the command that caused the error). The default is to start where we left off.
+
+### send
+
+```python
+await ctx.send(content)
+```
+
+Sends a message to the context destination.
+
+**Parameters:**
+- `content` (str): The contents of the message.
+
+**Example:**
+```python
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello!')
+```
+
+### send_help
+
+```python
+await ctx.send_help(entity=None, page=1)
+```
+
+Shows the help command for the specified entity if given. The entity can be a command or a cog.
+
+If no entity is given, then it'll show help for the entire bot.
+
+If the entity is a string, then it looks up whether it's a `Cog` or a `Command`.
+
+**Note:** Due to the way this function works, instead of returning something similar to `HelpCommand.command_not_found()` this returns `None` on bad input or no help command.
+
+**Parameters:**
+- `entity` (Optional[Union[Command, Cog, str]]): The entity to show help for.
+- `page` (int): The page to show. Only has an effect if the entity is either the bot or a cog.
+
+**Returns:** `Any` - The result of the help command, if any.
+
+**Examples:**
+```python
+@bot.command()
+async def help_me(ctx):
+    # Send help for entire bot
+    await ctx.send_help()
+
+@bot.command()
+async def command_help(ctx, command_name):
+    # Send help for a specific command
+    await ctx.send_help(command_name)
+```
+
+---
+
+## Example Usage
+
+```python
+@bot.command()
+async def info(ctx):
+    """Shows information about the command invocation"""
+    info_msg = f"""
+    Command: {ctx.command.name}
+    Invoked with: {ctx.invoked_with}
+    Author: {ctx.author.display_name}
+    Prefix: {ctx.prefix}
+    """
+    await ctx.send(info_msg)
+
+@bot.command()
+async def echo(ctx, *, message: str):
+    """Echoes your message"""
+    await ctx.send(message)
+    
+@bot.command()
+async def party_info(ctx):
+    """Shows party information (party messages only)"""
+    if ctx.party is None:
+        await ctx.send('This command only works in party chat!')
+        return
+    
+    await ctx.send(f'Party size: {ctx.party.member_count}')
+```

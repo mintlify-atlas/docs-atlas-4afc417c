@@ -1,0 +1,475 @@
+---
+title: AdvancedAuth
+description: Smart authentication with automatic fallbacks and device auth generation
+---
+
+AdvancedAuth is an intelligent authentication class that tries multiple authentication methods in order and automatically generates device auth credentials for future logins. This is the recommended authentication method for most applications.
+
+## Authentication Flow
+
+AdvancedAuth attempts authentication in the following order:
+
+1. **DeviceAuth** - If `device_id`, `account_id`, and `secret` are provided
+2. **DeviceCodeAuth** - If `prompt_device_code` is `True`
+3. **ExchangeCodeAuth** - If `exchange_code` is provided or `prompt_exchange_code` is `True`
+4. **AuthorizationCodeAuth** - If `authorization_code` is provided or `prompt_authorization_code` is `True`
+
+If authentication was not done by step 1, a device auth is automatically generated and dispatched to the `event_device_auth_generate` event.
+
+<Note>
+  It is important to store the generated device auth values somewhere since they can be used for easier logins in the future.
+</Note>
+
+## Class Signature
+
+```python
+class AdvancedAuth(Auth):
+    def __init__(
+        self,
+        exchange_code: Optional[Union[str, Callable, Awaitable]] = None,
+        authorization_code: Optional[Union[str, Callable, Awaitable]] = None,
+        device_id: Optional[str] = None,
+        account_id: Optional[str] = None,
+        secret: Optional[str] = None,
+        prompt_exchange_code: bool = False,
+        prompt_authorization_code: bool = False,
+        prompt_device_code: bool = True,
+        open_link_in_browser: bool = True,
+        prompt_code_if_invalid: bool = False,
+        prompt_code_if_throttled: bool = False,
+        delete_existing_device_auths: bool = False,
+        **kwargs: Any
+    ) -> None
+```
+
+## Parameters
+
+<ParamField path="exchange_code" type="Union[str, Callable, Awaitable]" optional>
+  The exchange code or a function/coroutine that when called returns the exchange code.
+</ParamField>
+
+<ParamField path="authorization_code" type="Union[str, Callable, Awaitable]" optional>
+  The authorization code or a function/coroutine that when called returns the authorization code.
+</ParamField>
+
+<ParamField path="device_id" type="str" optional>
+  The device ID to use for the login.
+</ParamField>
+
+<ParamField path="account_id" type="str" optional>
+  The account ID to use for the login.
+</ParamField>
+
+<ParamField path="secret" type="str" optional>
+  The secret to use for the login.
+</ParamField>
+
+<ParamField path="prompt_device_code" type="bool" default={true}>
+  If this is set to `True` and no valid device auth or code is available, the device code flow will be used.
+</ParamField>
+
+<ParamField path="prompt_exchange_code" type="bool" default={false}>
+  If this is set to `True` and no exchange code is passed, you will be prompted to enter the exchange code in the console if needed.
+  
+  <Note>
+    Both `prompt_exchange_code` and `prompt_authorization_code` cannot be `True` at the same time.
+  </Note>
+</ParamField>
+
+<ParamField path="prompt_authorization_code" type="bool" default={false}>
+  If this is set to `True` and no authorization code is passed, you will be prompted to enter the authorization code in the console if needed.
+  
+  <Note>
+    Both `prompt_exchange_code` and `prompt_authorization_code` cannot be `True` at the same time.
+  </Note>
+</ParamField>
+
+<ParamField path="open_link_in_browser" type="bool" default={true}>
+  Whether to automatically open the device code link in the default browser.
+</ParamField>
+
+<ParamField path="prompt_code_if_invalid" type="bool" default={false}>
+  Whether or not to prompt a code if the device auth details are invalid. If this is `False`, then the regular `AuthException` is raised instead.
+  
+  <Note>
+    This only works if `prompt_exchange_code` or `prompt_authorization_code` is `True`.
+  </Note>
+</ParamField>
+
+<ParamField path="prompt_code_if_throttled" type="bool" default={false}>
+  If this is set to `True` and you receive a throttling response, you will be prompted to enter a code in the console.
+  
+  <Note>
+    This only works if `prompt_exchange_code` or `prompt_authorization_code` is `True`.
+  </Note>
+</ParamField>
+
+<ParamField path="delete_existing_device_auths" type="bool" default={false}>
+  Whether or not to delete all existing device auths when a new one is created.
+</ParamField>
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the account ID, authorization code, or exchange code.
+</ResponseField>
+
+## Methods
+
+### eula_check_needed
+
+```python
+def eula_check_needed() -> bool
+```
+
+Returns whether EULA check is needed based on the authentication method used.
+
+### exchange_code_ready
+
+```python
+def exchange_code_ready() -> bool
+```
+
+Checks if an exchange code is available.
+
+**Returns:** `True` if exchange code is set, `False` otherwise
+
+### authorization_code_ready
+
+```python
+def authorization_code_ready() -> bool
+```
+
+Checks if an authorization code is available.
+
+**Returns:** `True` if authorization code is set, `False` otherwise
+
+### code_ready
+
+```python
+def code_ready() -> bool
+```
+
+Checks if either an exchange code or authorization code is available.
+
+**Returns:** `True` if any code is available, `False` otherwise
+
+### device_auth_ready
+
+```python
+def device_auth_ready() -> bool
+```
+
+Checks if device auth credentials are available.
+
+**Returns:** `True` if device_id, account_id, and secret are all set, `False` otherwise
+
+### prompt_enabled
+
+```python
+def prompt_enabled() -> bool
+```
+
+Checks if any prompt option is enabled.
+
+**Returns:** `True` if any prompt is enabled, `False` otherwise
+
+### get_prompt_type_name
+
+```python
+def get_prompt_type_name() -> str
+```
+
+Gets the name of the prompt type being used.
+
+**Returns:** `'exchange'` or `'authorization'`
+
+### run_exchange_code_authenticate
+
+```python
+async def run_exchange_code_authenticate() -> dict
+```
+
+Runs exchange code authentication.
+
+**Returns:** Authentication data dictionary
+
+### run_authorization_code_authenticate
+
+```python
+async def run_authorization_code_authenticate() -> dict
+```
+
+Runs authorization code authentication.
+
+**Returns:** Authentication data dictionary
+
+### run_device_code_authenticate
+
+```python
+async def run_device_code_authenticate() -> dict
+```
+
+Runs device code authentication.
+
+**Returns:** Authentication data dictionary
+
+### run_device_authenticate
+
+```python
+async def run_device_authenticate(
+    device_id: Optional[str] = None,
+    account_id: Optional[str] = None,
+    secret: Optional[str] = None,
+    *,
+    priority: int = 0
+) -> dict
+```
+
+Runs device authentication.
+
+<ParamField path="device_id" type="str" optional>
+  Device ID (uses instance value if not provided).
+</ParamField>
+
+<ParamField path="account_id" type="str" optional>
+  Account ID (uses instance value if not provided).
+</ParamField>
+
+<ParamField path="secret" type="str" optional>
+  Secret (uses instance value if not provided).
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  Request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+### ios_authenticate
+
+```python
+async def ios_authenticate(priority: int = 0) -> dict
+```
+
+Performs iOS authentication using the best available method.
+
+<ParamField path="priority" type="int" default="0">
+  Request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+### authenticate
+
+```python
+async def authenticate(**kwargs) -> None
+```
+
+Authenticates the client and sets up all required tokens.
+
+### reauthenticate
+
+```python
+async def reauthenticate(priority: int = 0) -> None
+```
+
+Re-authenticates using device auth credentials.
+
+<ParamField path="priority" type="int" default="0">
+  Request priority.
+</ParamField>
+
+## Example Usage
+
+### Recommended setup (with device auth persistence)
+
+```python
+import rebootpy
+import json
+import os
+
+# Load device auth if it exists
+device_auth_path = 'device_auth.json'
+if os.path.exists(device_auth_path):
+    with open(device_auth_path, 'r') as f:
+        device_auth = json.load(f)
+else:
+    device_auth = {}
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(
+        device_id=device_auth.get('device_id'),
+        account_id=device_auth.get('account_id'),
+        secret=device_auth.get('secret'),
+        prompt_device_code=True
+    )
+)
+
+@client.event
+async def event_device_auth_generate(details):
+    with open(device_auth_path, 'w') as f:
+        json.dump(details, f, indent=2)
+    print('Device auth saved to', device_auth_path)
+
+@client.event
+async def event_device_code_generated(url):
+    print(f'Please login at: {url}')
+
+@client.event
+async def event_ready():
+    print(f'Logged in as {client.user.display_name}')
+
+await client.start()
+```
+
+### With authorization code prompt
+
+```python
+import rebootpy
+import json
+import os
+
+device_auth_path = 'device_auth.json'
+if os.path.exists(device_auth_path):
+    with open(device_auth_path, 'r') as f:
+        device_auth = json.load(f)
+else:
+    device_auth = {}
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(
+        device_id=device_auth.get('device_id'),
+        account_id=device_auth.get('account_id'),
+        secret=device_auth.get('secret'),
+        prompt_authorization_code=True,  # Prompt for auth code if needed
+        prompt_device_code=False
+    )
+)
+
+@client.event
+async def event_device_auth_generate(details):
+    with open(device_auth_path, 'w') as f:
+        json.dump(details, f, indent=2)
+    print('Device auth saved!')
+
+await client.start()
+```
+
+### With existing authorization code
+
+```python
+import rebootpy
+import json
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(
+        authorization_code='your-authorization-code-here'
+    )
+)
+
+@client.event
+async def event_device_auth_generate(details):
+    # Save for future use
+    with open('device_auth.json', 'w') as f:
+        json.dump(details, f)
+
+await client.start()
+```
+
+### With invalid device auth fallback
+
+```python
+import rebootpy
+import json
+import os
+
+device_auth_path = 'device_auth.json'
+if os.path.exists(device_auth_path):
+    with open(device_auth_path, 'r') as f:
+        device_auth = json.load(f)
+else:
+    device_auth = {}
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(
+        device_id=device_auth.get('device_id'),
+        account_id=device_auth.get('account_id'),
+        secret=device_auth.get('secret'),
+        prompt_device_code=True,
+        prompt_code_if_invalid=True  # Fall back to prompt if device auth fails
+    )
+)
+
+@client.event
+async def event_device_auth_generate(details):
+    with open(device_auth_path, 'w') as f:
+        json.dump(details, f, indent=2)
+    print('New device auth generated and saved!')
+
+await client.start()
+```
+
+## Events
+
+<ResponseField name="device_auth_generate" type="event">
+  Dispatched when device auth credentials are generated.
+  
+  **Parameters:**
+  - `details` (dict): Dictionary containing `device_id`, `account_id`, and `secret`
+</ResponseField>
+
+<ResponseField name="device_code_generated" type="event">
+  Dispatched when a device code URL is generated (if using device code flow).
+  
+  **Parameters:**
+  - `url` (str): The verification URI to display to the user
+</ResponseField>
+
+## Best Practices
+
+1. **Always save device auth credentials** - Store them securely for future logins
+2. **Use device code flow by default** - Most user-friendly for first-time authentication
+3. **Handle the `event_device_auth_generate` event** - Essential for persistent authentication
+4. **Don't commit credentials** - Use `.gitignore` to exclude auth files
+5. **Implement fallbacks** - Use `prompt_code_if_invalid` for robustness
+
+## Error Handling
+
+AdvancedAuth handles many error scenarios automatically:
+
+- **Invalid device auth** - Falls back to other methods if `prompt_code_if_invalid` is enabled
+- **Expired codes** - Can prompt for new codes
+- **Throttling** - Can fall back to prompts if `prompt_code_if_throttled` is enabled
+
+## Comparison with Other Auth Methods
+
+| Feature | AdvancedAuth | DeviceAuth | AuthorizationCodeAuth | DeviceCodeAuth |
+|---------|--------------|------------|----------------------|----------------|
+| First-time setup | Easy | Requires existing credentials | Manual code | Easy |
+| Automatic device auth | Yes | N/A | No | No |
+| Multiple fallbacks | Yes | No | No | No |
+| User interaction | Optional | No | Yes | Yes |
+| Best for | Most apps | Headless/automated | Simple scripts | Interactive apps |
+
+## Security Considerations
+
+<Warning>
+  The generated device auth credentials are sensitive. Always:
+  - Store them securely (encrypted files, environment variables, secrets managers)
+  - Never commit them to version control
+  - Use appropriate file permissions (e.g., `chmod 600` on Linux)
+  - Invalidate them if compromised (reset your Epic Games password)
+</Warning>
+
+## Source
+
+View source: [rebootpy/auth.py:843](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L843)

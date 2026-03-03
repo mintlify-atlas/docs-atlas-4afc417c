@@ -1,0 +1,524 @@
+---
+title: 'Friends System'
+description: 'Managing friends and friend requests in rebootpy'
+---
+
+## Overview
+
+The friends system allows your bot to manage friendships, send messages, and track friend status. Friends are represented by the `Friend` class and pending requests by `IncomingPendingFriend` and `OutgoingPendingFriend`.
+
+## Friend Classes
+
+### Friend
+
+Represents an accepted friend.
+
+**Key Attributes:**
+- `id` - Friend's account ID
+- `display_name` - Friend's display name
+- `epicgames_account` - Whether friend has an Epic Games account
+- `status` - Friendship status (usually "ACCEPTED")
+- `incoming` / `outgoing` - Whether friend sent or received the request
+- `created_at` - When the friendship was created
+- `favorite` - Whether the friend is favorited
+- `nickname` - Custom nickname set for this friend
+- `note` - Note attached to this friend
+- `last_presence` - Last received presence data
+- `last_logout` - Last time friend logged out
+- `platform` - Current platform (if online)
+
+### IncomingPendingFriend
+
+Represents a received friend request.
+
+**Key Methods:**
+- `accept()` - Accept the friend request
+- `decline()` - Decline the friend request
+
+### OutgoingPendingFriend
+
+Represents a sent friend request.
+
+**Key Methods:**
+- `cancel()` / `abort()` - Cancel the sent request
+
+## Accessing Friends
+
+### Get All Friends
+
+```python
+# Get list of all friends
+friends = client.friends
+
+for friend in friends:
+    print(f'{friend.display_name} ({friend.id})')
+
+# Get number of friends
+friend_count = len(client.friends)
+```
+
+### Get Pending Requests
+
+```python
+# Incoming requests (received)
+incoming = client.incoming_pending_friends
+
+for request in incoming:
+    print(f'Request from: {request.display_name}')
+
+# Outgoing requests (sent)
+outgoing = client.outgoing_pending_friends
+
+for request in outgoing:
+    print(f'Request sent to: {request.display_name}')
+```
+
+### Get Specific Friend
+
+```python
+# Get friend by ID
+friend = client.get_friend('user-id-here')
+
+if friend:
+    print(f'Found friend: {friend.display_name}')
+else:
+    print('Friend not found')
+```
+
+## Managing Friends
+
+### Adding Friends
+
+```python
+import rebootpy
+from rebootpy.errors import (
+    NotFound,
+    DuplicateFriendship,
+    FriendshipRequestAlreadySent,
+    MaxFriendshipsExceeded,
+    InviteeMaxFriendshipsExceeded,
+    Forbidden
+)
+
+@client.event
+async def event_ready():
+    try:
+        # Add friend by ID
+        await client.add_friend('user-id-here')
+        print('Friend request sent')
+    except NotFound:
+        print('User does not exist')
+    except DuplicateFriendship:
+        print('Already friends')
+    except FriendshipRequestAlreadySent:
+        print('Friend request already sent')
+    except MaxFriendshipsExceeded:
+        print('You have too many friends (limit: 1000)')
+    except InviteeMaxFriendshipsExceeded:
+        print('User has too many friends')
+    except Forbidden:
+        print('User has blocked friend requests')
+```
+
+### Accepting Friend Requests
+
+```python
+@client.event
+async def event_friend_request(request):
+    print(f'Friend request from {request.display_name}')
+    
+    # Accept the request
+    friend = await request.accept()
+    print(f'Now friends with {friend.display_name}')
+    
+    # Send a welcome message
+    await friend.send('Thanks for adding me!')
+```
+
+### Declining Friend Requests
+
+```python
+@client.event
+async def event_friend_request(request):
+    # Decline if not on whitelist
+    whitelist = ['allowed-user-id-1', 'allowed-user-id-2']
+    
+    if request.id not in whitelist:
+        await request.decline()
+        print(f'Declined request from {request.display_name}')
+```
+
+### Removing Friends
+
+```python
+# Remove a friend
+friend = client.get_friend('user-id')
+if friend:
+    await friend.remove()
+    print(f'Removed {friend.display_name}')
+
+# Or using client method
+await client.remove_or_decline_friend('user-id')
+```
+
+### Canceling Outgoing Requests
+
+```python
+# Find outgoing request
+for request in client.outgoing_pending_friends:
+    if request.display_name == 'SomeUser':
+        await request.cancel()
+        print('Friend request canceled')
+        break
+```
+
+## Friend Information
+
+### Check Online Status
+
+```python
+friend = client.get_friend('user-id')
+
+if friend.is_online():
+    print(f'{friend.display_name} is online')
+    print(f'Platform: {friend.platform.name}')
+    print(f'Playing: {friend.last_presence.status}')
+else:
+    print(f'{friend.display_name} is offline')
+    if friend.last_logout:
+        print(f'Last seen: {friend.last_logout}')
+```
+
+### Wait for Friend Status
+
+```python
+@client.event
+async def event_friend_add(friend):
+    print(f'Added {friend.display_name}, waiting for them to come online...')
+    
+    # Wait for friend to come online
+    await friend.wait_until_online()
+    print(f'{friend.display_name} is now online!')
+    
+    # Send a message
+    await friend.send('Hey! I saw you came online!')
+```
+
+### Fetch Last Logout Time
+
+```python
+friend = client.get_friend('user-id')
+
+if not friend.last_logout:
+    # Fetch from API
+    last_logout = await friend.fetch_last_logout()
+    if last_logout:
+        print(f'Last online: {last_logout}')
+    else:
+        print('Never logged into Fortnite')
+```
+
+### Fetch Mutual Friends
+
+```python
+friend = client.get_friend('user-id')
+mutuals = await friend.fetch_mutual_friends()
+
+print(f'Mutual friends with {friend.display_name}:')
+for mutual in mutuals:
+    print(f'  - {mutual.display_name}')
+```
+
+## Nicknames and Notes
+
+### Set Nickname
+
+```python
+friend = client.get_friend('user-id')
+
+try:
+    await friend.set_nickname('BestFriend')
+    print(f'Nickname set to: {friend.nickname}')
+except ValueError as e:
+    print(f'Invalid nickname: {e}')
+```
+
+### Remove Nickname
+
+```python
+friend = client.get_friend('user-id')
+await friend.remove_nickname()
+print('Nickname removed')
+```
+
+### Set Note
+
+```python
+friend = client.get_friend('user-id')
+
+try:
+    await friend.set_note('Met in a random squad fill game')
+    print(f'Note set: {friend.note}')
+except ValueError as e:
+    print(f'Invalid note: {e}')
+```
+
+### Remove Note
+
+```python
+friend = client.get_friend('user-id')
+await friend.remove_note()
+print('Note removed')
+```
+
+## Sending Messages
+
+```python
+friend = client.get_friend('user-id')
+
+# Send a message
+await friend.send('Hello!')
+
+# Send multiple messages
+await friend.send('How are you?')
+await friend.send('Want to play?')
+```
+
+See [Messages](/concepts/messages) for more details.
+
+## Blocking Users
+
+```python
+# Block a user
+friend = client.get_friend('user-id')
+await friend.block()
+
+# Or using client method
+await client.block_user('user-id')
+
+# Unblock a user
+await client.unblock_user('user-id')
+
+# Fetch blocklist
+blocked_ids = await client.fetch_blocklist()
+print(f'Blocked users: {len(blocked_ids)}')
+```
+
+## Party Operations
+
+### Join Friend's Party
+
+```python
+import rebootpy
+from rebootpy.errors import PartyError, Forbidden
+
+@client.event
+async def event_friend_presence(before, after):
+    friend = after.friend
+    
+    # Check if friend just came online or joined a new party
+    if after.available and after.party and not after.party.private:
+        try:
+            await friend.join_party()
+            print(f'Joined {friend.display_name}\'s party')
+        except PartyError:
+            print('Party not found')
+        except Forbidden:
+            print('Party is private')
+```
+
+### Invite Friend to Party
+
+```python
+friend = client.get_friend('user-id')
+
+try:
+    invitation = await friend.invite()
+    print(f'Invited {friend.display_name} to party')
+except PartyError as e:
+    print(f'Could not invite: {e}')
+```
+
+### Request to Join Friend
+
+```python
+friend = client.get_friend('user-id')
+
+try:
+    await friend.request_to_join()
+    print(f'Sent join request to {friend.display_name}')
+except PartyError:
+    print('Already in their party')
+except FriendOffline:
+    print('Friend is offline')
+```
+
+## Friend Events
+
+### Friend Added
+
+```python
+@client.event
+async def event_friend_add(friend):
+    print(f'New friend: {friend.display_name}')
+    print(f'Created at: {friend.created_at}')
+    print(f'Incoming: {friend.incoming}')
+    
+    await friend.send('Thanks for adding me!')
+```
+
+### Friend Removed
+
+```python
+@client.event
+async def event_friend_remove(friend):
+    print(f'{friend.display_name} removed')
+```
+
+### Friend Presence Changed
+
+```python
+@client.event
+async def event_friend_presence(before, after):
+    friend = after.friend
+    
+    # Friend came online
+    if before is None or not before.available:
+        if after.available:
+            print(f'{friend.display_name} came online on {after.platform.name}')
+    
+    # Friend went offline
+    elif not after.available:
+        print(f'{friend.display_name} went offline')
+    
+    # Status changed
+    else:
+        if before.status != after.status:
+            print(f'{friend.display_name} status: {after.status}')
+```
+
+### Friend Request Received
+
+```python
+@client.event
+async def event_friend_request(request):
+    print(f'Friend request from {request.display_name}')
+    print(f'Epic account: {request.epicgames_account}')
+    print(f'Created: {request.created_at}')
+    
+    # Auto-accept all requests
+    await request.accept()
+```
+
+## Advanced Patterns
+
+### Auto-accept from Whitelist
+
+```python
+WHITELIST = ['user-id-1', 'user-id-2']
+
+@client.event
+async def event_friend_request(request):
+    if request.id in WHITELIST:
+        await request.accept()
+        print(f'Auto-accepted {request.display_name}')
+    else:
+        print(f'Ignoring request from {request.display_name}')
+```
+
+### Track Friend Activity
+
+```python
+friend_activity = {}
+
+@client.event
+async def event_friend_presence(before, after):
+    friend = after.friend
+    
+    if friend.id not in friend_activity:
+        friend_activity[friend.id] = []
+    
+    friend_activity[friend.id].append({
+        'timestamp': after.received_at,
+        'online': after.available,
+        'status': after.status,
+        'platform': after.platform.name if after.platform else None
+    })
+```
+
+### Notification System
+
+```python
+VIP_FRIENDS = ['vip-user-id-1', 'vip-user-id-2']
+
+@client.event
+async def event_friend_presence(before, after):
+    friend = after.friend
+    
+    # Notify when VIP friend comes online
+    if friend.id in VIP_FRIENDS:
+        if (before is None or not before.available) and after.available:
+            # Send notification (Discord webhook, email, etc.)
+            await send_notification(f'{friend.display_name} is online!')
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check friend limits" icon="users">
+    Most accounts have a 1000 friend limit. Handle `MaxFriendshipsExceeded`
+  </Card>
+  <Card title="Use IDs, not names" icon="id-card">
+    Always use friend IDs instead of display names for reliability
+  </Card>
+  <Card title="Handle offline friends" icon="signal">
+    Check `is_online()` before accessing presence data
+  </Card>
+  <Card title="Respect rate limits" icon="gauge">
+    Don't spam friend requests or messages
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+### Friend Not in List
+
+If a friend doesn't appear in `client.friends`, they might be a pending request:
+
+```python
+friend = client.get_friend('user-id')
+if not friend:
+    # Check pending requests
+    for pending in client.incoming_pending_friends:
+        if pending.id == 'user-id':
+            friend = await pending.accept()
+            break
+```
+
+### Presence is None
+
+Presence might be `None` if the friend hasn't sent presence data yet:
+
+```python
+friend = client.get_friend('user-id')
+if friend.last_presence is None:
+    # Wait for presence
+    await friend.wait_until_online()
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Messages" href="/concepts/messages" icon="message">
+    Learn how to send and receive messages
+  </Card>
+  <Card title="Presence" href="/concepts/presence" icon="signal">
+    Understand presence and status tracking
+  </Card>
+  <Card title="Parties" href="/concepts/parties" icon="people-group">
+    Join and manage party lobbies
+  </Card>
+  <Card title="Events" href="/concepts/events" icon="bolt">
+    Handle friend-related events
+  </Card>
+</CardGroup>

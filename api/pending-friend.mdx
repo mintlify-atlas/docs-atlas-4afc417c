@@ -1,0 +1,111 @@
+---
+title: Pending Friends
+description: API reference for IncomingPendingFriend and OutgoingPendingFriend classes
+---
+
+## PendingFriendBase
+
+Base class for pending friends. Represents a pending friend from Fortnite. Inherits from `FriendBase` and `UserBase`.
+
+### Properties
+
+#### status
+
+`str` - The friend's status to the client.
+
+#### incoming
+
+`bool` - `True` if this friend was the one to send the friend request else `False`. Aliased to `inbound` as well.
+
+#### inbound
+
+`bool` - Alias for `incoming`.
+
+#### outgoing
+
+`bool` - `True` if the bot was the one to send the friend request else `False`. Aliased to `outbound` as well.
+
+#### outbound
+
+`bool` - Alias for `outgoing`.
+
+#### created_at
+
+`datetime.datetime` - The UTC time of when the request was created.
+
+## IncomingPendingFriend
+
+Represents an incoming pending friend. This means that the client received the friend request. Inherits from `PendingFriendBase`.
+
+### Methods
+
+#### accept()
+
+```python
+async def accept() -> Friend
+```
+
+Accepts this user's friend request.
+
+**Raises:**
+- `HTTPException` - Something went wrong when trying to accept this request.
+
+**Returns:** `Friend` - Object of the friend you just added.
+
+#### decline()
+
+```python
+async def decline() -> None
+```
+
+Declines this user's friend request.
+
+**Raises:**
+- `HTTPException` - Something went wrong when trying to decline this request.
+
+#### block()
+
+```python
+async def block() -> None
+```
+
+Blocks this user.
+
+**Raises:**
+- `HTTPException` - Something went wrong when trying to block this user.
+
+## OutgoingPendingFriend
+
+Represents an outgoing pending friend. This means that the client sent the friend request. Inherits from `PendingFriendBase`.
+
+### Methods
+
+#### cancel()
+
+```python
+async def cancel() -> None
+```
+
+Cancel the friend request sent to this user. This method is also aliased to `abort()`.
+
+**Raises:**
+- `HTTPException` - Something went wrong when trying to cancel this request.
+
+#### abort()
+
+```python
+async def abort() -> None
+```
+
+Alias for `cancel()`.
+
+#### block()
+
+```python
+async def block() -> None
+```
+
+Blocks this user.
+
+**Raises:**
+- `HTTPException` - Something went wrong when trying to block this user.

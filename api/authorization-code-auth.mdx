@@ -1,0 +1,174 @@
+---
+title: AuthorizationCodeAuth
+description: Authenticate with Epic Games authorization code
+---
+
+Authenticates using an Epic Games authorization code. This is one of the most straightforward authentication methods.
+
+You can get the code from [this link](https://www.epicgames.com/id/api/redirect?clientId=3f69e56c7649492c8cc29f1af08a8a12&responseType=code) by logging in and copying the code from the redirectUrl's query parameters.
+
+## Getting an Authorization Code
+
+1. Visit the authorization URL
+2. Log in to your Epic Games account (or log out and log in to a different account)
+3. Copy the `code` parameter from the redirected URL
+
+![Authorization Code Example](https://raw.githubusercontent.com/xMistt/rebootpy/main/docs/resources/images/authorization_code.png)
+
+<Note>
+  An authorization code only works for a single login within a short timeframe (300 seconds). You need to get a new code for each login by refreshing the site.
+</Note>
+
+## Class Signature
+
+```python
+class AuthorizationCodeAuth(ExchangeCodeAuth):
+    def __init__(self, code: Union[str, Callable, Awaitable], **kwargs: Any) -> None
+```
+
+## Parameters
+
+<ParamField path="code" type="Union[str, Callable, Awaitable]" required>
+  The authorization code or a function/coroutine that when called returns the authorization code.
+  
+  This allows you to provide:
+  - A string: `"your-auth-code-here"`
+  - A function: `lambda: get_code_from_somewhere()`
+  - An async function: `async def get_code(): return await fetch_code()`
+</ParamField>
+
+<ParamField path="device_id" type="str" optional>
+  A 32 char hex string representing your device.
+</ParamField>
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the resolved authorization code.
+</ResponseField>
+
+## Methods
+
+### ios_authenticate
+
+```python
+async def ios_authenticate(priority: int = 0) -> dict
+```
+
+Performs iOS authentication using the authorization code.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+**Raises:**
+- `AuthException`: If the authorization code is invalid or expired
+
+## Inherited Methods
+
+Since `AuthorizationCodeAuth` extends `ExchangeCodeAuth`, it inherits the following methods:
+
+### authenticate
+
+```python
+async def authenticate(priority: int = 0, **kwargs) -> None
+```
+
+Authenticates the client and sets up all required tokens.
+
+### resolve
+
+```python
+async def resolve(code: Union[str, Callable, Awaitable]) -> str
+```
+
+Resolves a code from a string, callable, or awaitable.
+
+## Example Usage
+
+### With a static code
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your-authorization-code-here'
+    )
+)
+
+await client.start()
+```
+
+### With a function
+
+```python
+import rebootpy
+
+def get_auth_code():
+    # Read from a file, database, or prompt the user
+    return input('Enter your authorization code: ')
+
+client = rebootpy.Client(
+    auth=rebootpy.AuthorizationCodeAuth(
+        code=get_auth_code
+    )
+)
+
+await client.start()
+```
+
+### With an async function
+
+```python
+import rebootpy
+import aiofiles
+
+async def get_auth_code():
+    async with aiofiles.open('auth_code.txt', 'r') as f:
+        return await f.read()
+
+client = rebootpy.Client(
+    auth=rebootpy.AuthorizationCodeAuth(
+        code=get_auth_code
+    )
+)
+
+await client.start()
+```
+
+## Error Handling
+
+If the authorization code is invalid or expired, an `AuthException` is raised with the message:
+
+```
+Invalid authorization code supplied
+```
+
+The underlying error will have the message code:
+```
+errors.com.epicgames.account.oauth.authorization_code_not_found
+```
+
+## Comparison with ExchangeCodeAuth
+
+`AuthorizationCodeAuth` is a specialized version of `ExchangeCodeAuth` that uses the `authorization_code` grant type instead of `exchange_code`. The main differences are:
+
+- **AuthorizationCodeAuth**: Uses codes from Epic's authorization endpoint (easier to obtain)
+- **ExchangeCodeAuth**: Uses exchange codes from Epic's exchange endpoint (more complex to obtain)
+
+Both have the same 300-second expiration time and single-use limitation.
+
+## Source
+
+View source: [rebootpy/auth.py:586](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L586)

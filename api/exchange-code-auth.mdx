@@ -1,0 +1,237 @@
+---
+title: ExchangeCodeAuth
+description: Authenticate with Epic Games exchange code
+---
+
+Authenticates using an Epic Games exchange code. This authentication method requires obtaining an exchange code from Epic Games endpoints.
+
+<Note>
+  The method to get an exchange code has been significantly harder since Epic patched the old method of copying the code from one of their own endpoints that could be requested easily in a browser.
+  
+  To obtain an exchange code, it is recommended to provide a custom solution like running a selenium process where you log in on https://epicgames.com and then redirect to `/id/api/exchange/generate`. You can then return the exchange code. You can put this solution in a function and then pass this to `exchange_code`.
+</Note>
+
+<Warning>
+  An exchange code only works for a single login within a short timeframe (300 seconds). You need to get a new code for each login by refreshing the site.
+</Warning>
+
+## Class Signature
+
+```python
+class ExchangeCodeAuth(Auth):
+    def __init__(self, code: Union[str, Callable, Awaitable], **kwargs: Any) -> None
+```
+
+## Parameters
+
+<ParamField path="code" type="Union[str, Callable, Awaitable]" required>
+  The exchange code or a function/coroutine that when called returns the exchange code.
+  
+  This allows you to provide:
+  - A string: `"your-exchange-code-here"`
+  - A function: `lambda: get_code_from_selenium()`
+  - An async function: `async def get_code(): return await fetch_exchange_code()`
+</ParamField>
+
+<ParamField path="device_id" type="str" optional>
+  A 32 char hex string representing your device.
+</ParamField>
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the resolved exchange code.
+</ResponseField>
+
+<ResponseField name="resolved_code" type="str">
+  The exchange code after it has been resolved from the callable/awaitable.
+</ResponseField>
+
+## Methods
+
+### resolve
+
+```python
+async def resolve(code: Union[str, Callable, Awaitable]) -> str
+```
+
+Resolves a code from a string, callable, or awaitable.
+
+<ParamField path="code" type="Union[str, Callable, Awaitable]" required>
+  The code to resolve.
+</ParamField>
+
+**Returns:** The resolved code as a string
+
+**Raises:**
+- `TypeError`: If the callable doesn't return a string
+
+### ios_authenticate
+
+```python
+async def ios_authenticate(priority: int = 0) -> dict
+```
+
+Performs iOS authentication using the exchange code.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+**Raises:**
+- `AuthException`: If the exchange code is invalid or expired
+
+### authenticate
+
+```python
+async def authenticate(priority: int = 0, **kwargs) -> None
+```
+
+Authenticates the client and sets up all required tokens.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Side effects:**
+- Updates iOS token data
+- Kills other sessions (if `client.kill_other_sessions` is `True`)
+- Obtains and updates chat, EAS, and EOS tokens
+- Sets up the client user
+
+## Example Usage
+
+### With a static code
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.ExchangeCodeAuth(
+        code='your-exchange-code-here'
+    )
+)
+
+await client.start()
+```
+
+### With a function
+
+```python
+import rebootpy
+
+def get_exchange_code():
+    # Your custom logic to get an exchange code
+    # For example, using Selenium to automate browser login
+    return obtain_code_from_selenium()
+
+client = rebootpy.Client(
+    auth=rebootpy.ExchangeCodeAuth(
+        code=get_exchange_code
+    )
+)
+
+await client.start()
+```
+
+### With an async function
+
+```python
+import rebootpy
+from selenium import webdriver
+
+async def get_exchange_code():
+    # Example: Automated browser login
+    driver = webdriver.Chrome()
+    driver.get('https://www.epicgames.com')
+    
+    # ... perform login steps ...
+    
+    # Navigate to exchange code endpoint
+    driver.get('https://www.epicgames.com/id/api/exchange/generate')
+    code = extract_code_from_response(driver.page_source)
+    
+    driver.quit()
+    return code
+
+client = rebootpy.Client(
+    auth=rebootpy.ExchangeCodeAuth(
+        code=get_exchange_code
+    )
+)
+
+await client.start()
+```
+
+## Error Handling
+
+If the exchange code is invalid or expired, an `AuthException` is raised with the message:
+
+```
+Invalid exchange code supplied
+```
+
+The underlying error will have the message code:
+```
+errors.com.epicgames.account.oauth.exchange_code_not_found
+```
+
+## How to Obtain an Exchange Code
+
+Since Epic Games patched the easy method, here are recommended approaches:
+
+### 1. Selenium/Playwright Automation
+
+```python
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import json
+
+def get_exchange_code_selenium():
+    driver = webdriver.Chrome()
+    
+    # Login to Epic Games
+    driver.get('https://www.epicgames.com')
+    # ... perform login ...
+    
+    # Get exchange code
+    driver.get('https://www.epicgames.com/id/api/exchange/generate')
+    response = json.loads(driver.find_element(By.TAG_NAME, 'pre').text)
+    code = response['code']
+    
+    driver.quit()
+    return code
+```
+
+### 2. Browser Extension
+
+Create a browser extension that intercepts the exchange code endpoint and copies the code to clipboard.
+
+### 3. Manual Console Method
+
+For development/testing:
+1. Log in to https://www.epicgames.com
+2. Open browser console
+3. Navigate to `/id/api/exchange/generate`
+4. Copy the code from the JSON response
+
+## Comparison with AuthorizationCodeAuth
+
+- **ExchangeCodeAuth**: Requires custom automation to obtain codes
+- **AuthorizationCodeAuth**: Easier to obtain codes from a simple redirect URL
+
+For most use cases, `AuthorizationCodeAuth` is recommended unless you specifically need exchange codes.
+
+## Source
+
+View source: [rebootpy/auth.py:477](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L477)

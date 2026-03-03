@@ -1,122 +1,165 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "rebootpy",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#9146FF",
+    "light": "#A66EFF",
+    "dark": "#7B2FE8"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/xmistt/rebootpy"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/xmistt/rebootpy"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Authentication",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "auth/overview",
+              "auth/authorization-code",
+              "auth/device-auth",
+              "auth/device-code",
+              "auth/exchange-code",
+              "auth/advanced"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "concepts/client",
+              "concepts/events",
+              "concepts/friends",
+              "concepts/parties",
+              "concepts/presence",
+              "concepts/messages"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Guides",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "guides/basic-bot",
+              "guides/commands-extension",
+              "guides/party-management",
+              "guides/stats-tracking",
+              "guides/error-handling",
+              "guides/multiple-clients"
+            ]
+          },
+          {
+            "group": "Extensions",
+            "pages": [
+              "extensions/commands",
+              "extensions/cogs",
+              "extensions/context"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Core",
             "pages": [
-              "api-reference/introduction"
+              "api/client",
+              "api/basic-client",
+              "api/user"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Authentication",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/auth",
+              "api/device-code-auth",
+              "api/authorization-code-auth",
+              "api/exchange-code-auth",
+              "api/device-auth",
+              "api/refresh-token-auth",
+              "api/advanced-auth"
+            ]
+          },
+          {
+            "group": "Social",
+            "pages": [
+              "api/friend",
+              "api/pending-friend",
+              "api/blocked-user",
+              "api/presence"
+            ]
+          },
+          {
+            "group": "Party",
+            "pages": [
+              "api/party",
+              "api/client-party",
+              "api/party-member",
+              "api/client-party-member",
+              "api/party-config",
+              "api/party-invitations"
+            ]
+          },
+          {
+            "group": "Messaging",
+            "pages": [
+              "api/friend-message",
+              "api/party-message"
+            ]
+          },
+          {
+            "group": "Stats & Data",
+            "pages": [
+              "api/stats",
+              "api/competitive-rank",
+              "api/store",
+              "api/creative-island",
+              "api/news",
+              "api/playlist"
+            ]
+          },
+          {
+            "group": "Enums",
+            "pages": [
+              "api/enums"
+            ]
+          },
+          {
+            "group": "Exceptions",
+            "pages": [
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Commands Extension",
+            "pages": [
+              "api/ext/bot",
+              "api/ext/command",
+              "api/ext/cog",
+              "api/ext/context",
+              "api/ext/converters",
+              "api/ext/errors"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

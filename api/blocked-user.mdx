@@ -1,0 +1,61 @@
+---
+title: BlockedUser
+description: API reference for the BlockedUser class
+---
+
+## BlockedUser
+
+Represents a blocked user from Fortnite. Inherits from `UserBase`.
+
+### Properties
+
+The `BlockedUser` class inherits all properties from `UserBase`, including:
+
+#### display_name
+
+`Optional[str]` - The user's display name.
+
+<Warning>
+The display name will be the one registered to the Epic Games account. If an Epic Games account is not found it defaults to the display name of an external auth.
+
+This property might be `None` if `Client.fetch_user_data_in_events` is set to `False`.
+</Warning>
+
+#### id
+
+`str` - The user's ID.
+
+#### external_auths
+
+`List[ExternalAuth]` - List containing information about external auths. Might be empty if the user does not have any external auths.
+
+#### epicgames_account
+
+`bool` - Tells you if the user is an account registered to Epic Games services. `False` if the user is from another platform without having linked their account to an Epic Games account.
+
+<Warning>
+If this is True, the display name will be the one registered to the Epic Games account, if not it defaults to the display name of an external auth.
+
+This property might be `False` even though the account is a registered Epic Games account if `Client.fetch_user_data_in_events` is set to `False`.
+</Warning>
+
+#### jid
+
+`str` - The JID of the user.
+
+#### disabled
+
+`bool` - Whether or not this user's account is disabled, meaning they cannot login. Other attributes/functions may not work properly if this is true.
+
+### Methods
+
+#### unblock()
+
+```python
+async def unblock() -> None
+```
+
+Unblocks this friend.
+
+**Raises:**
+- `HTTPException` - Something went wrong while unblocking this user.

@@ -1,0 +1,341 @@
+---
+title: Party management
+description: Learn how to manage parties, members, and party settings
+---
+
+Parties are a core feature in Fortnite. This guide covers how to manage your bot's party, invite members, configure settings, and handle party events.
+
+## Accessing the party
+
+Your bot's current party is available through `client.party`:
+
+```python
+import rebootpy
+
+client = rebootpy.Client(auth=rebootpy.AdvancedAuth())
+
+@client.event
+async def event_ready():
+    print(f'Party ID: {client.party.id}')
+    print(f'Party size: {client.party.member_count}')
+    print(f'Party leader: {client.party.leader.display_name}')
+```
+
+## Party privacy
+
+Control who can join your party:
+
+```python
+@client.event
+async def event_ready():
+    # Set party to public
+    await client.party.set_privacy(rebootpy.PartyPrivacy.PUBLIC)
+    
+    # Set party to friends only
+    await client.party.set_privacy(rebootpy.PartyPrivacy.FRIENDS)
+    
+    # Set party to private
+    await client.party.set_privacy(rebootpy.PartyPrivacy.PRIVATE)
+```
+
+You can also set the default privacy when creating the client:
+
+```python
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(),
+    default_party_config=rebootpy.DefaultPartyConfig(
+        privacy=rebootpy.PartyPrivacy.PUBLIC
+    )
+)
+```
+
+## Managing members
+
+### Listing members
+
+```python
+@client.event
+async def event_ready():
+    for member in client.party.members:
+        print(f'Member: {member.display_name}')
+```
+
+### Getting a specific member
+
+```python
+# By display name or ID
+member = client.party.get_member('Username')
+if member:
+    print(f'Found {member.display_name}')
+
+# By predicate function
+member = client.party.find_member(lambda m: m.outfit == 'CID_175_Athena_Commando_M_Celestial')
+```
+
+### Kicking members
+
+```python
+@client.event
+async def event_party_member_join(member):
+    # Kick members who aren't friends
+    if member.id not in [f.id for f in client.friends]:
+        await member.kick()
+```
+
+### Promoting members
+
+```python
+@client.event
+async def event_party_message(message):
+    if message.content == '!promote':
+        member = client.party.get_member(message.author.id)
+        if member:
+            await member.promote()
+```
+
+## Inviting and joining
+
+### Inviting friends
+
+```python
+@client.event
+async def event_friend_message(message):
+    if message.content == 'invite':
+        await message.author.invite()
+```
+
+### Joining parties
+
+```python
+# Join a friend's party
+friend = client.get_friend('FriendName')
+if friend and friend.party:
+    await friend.party.join()
+
+# Join via party ID
+await client.join_party(party_id)
+```
+
+### Handling invitations
+
+```python
+@client.event
+async def event_party_invitation(invitation):
+    # Auto-accept invites from friends
+    if invitation.sender.id in [f.id for f in client.friends]:
+        await invitation.accept()
+    else:
+        await invitation.decline()
+```
+
+## Party configuration
+
+Set multiple party settings at once:
+
+```python
+await client.party.edit(
+    privacy=rebootpy.PartyPrivacy.PUBLIC,
+    max_size=16,
+    joinability=rebootpy.PartyJoinability.OPEN,
+    discoverability=rebootpy.PartyDiscoverability.ALL
+)
+```
+
+### Party playlist and region
+
+```python
+# Set playlist (game mode)
+await client.party.set_playlist(
+    playlist='Playlist_DefaultSquad',  # Squad mode
+    tournament='',
+    event_window='',
+    region=rebootpy.Region.NAEAST
+)
+
+# Common playlists:
+# - Playlist_DefaultSolo
+# - Playlist_DefaultDuo
+# - Playlist_DefaultSquad
+# - Playlist_ShowdownAlt_Solo
+```
+
+### Custom party meta
+
+Set custom metadata on your party:
+
+```python
+await client.party.set_custom_key('MyCustomKey', 'MyValue')
+value = client.party.get_custom_key('MyCustomKey')
+```
+
+## Party member cosmetics
+
+### Setting your cosmetics
+
+```python
+@client.event
+async def event_ready():
+    # Set outfit (skin)
+    await client.party.me.set_outfit('CID_175_Athena_Commando_M_Celestial')
+    
+    # Set backpack
+    await client.party.me.set_backpack('BID_105_GhostPortal')
+    
+    # Set pickaxe
+    await client.party.me.set_pickaxe('Pickaxe_ID_116_Celestial')
+    
+    # Set emote
+    await client.party.me.set_emote('EID_Floss')
+```
+
+### Batch cosmetic updates
+
+Update multiple cosmetics efficiently:
+
+```python
+await client.party.me.edit(
+    functools.partial(client.party.me.set_outfit, 'CID_175_Athena_Commando_M_Celestial'),
+    functools.partial(client.party.me.set_backpack, 'BID_105_GhostPortal'),
+    functools.partial(client.party.me.set_pickaxe, 'Pickaxe_ID_116_Celestial')
+)
+```
+
+### Setting banner and level
+
+```python
+# Set banner
+await client.party.me.set_banner(
+    icon='standardbanner15',
+    color='defaultcolor15',
+    season_level=100
+)
+
+# Set battlepass info
+await client.party.me.set_battlepass_info(
+    has_purchased=True,
+    level=100,
+    self_boost_xp=0,
+    friend_boost_xp=0
+)
+```
+
+## Party events
+
+Handle party-related events:
+
+```python
+@client.event
+async def event_party_member_join(member):
+    print(f'{member.display_name} joined the party')
+
+@client.event
+async def event_party_member_leave(member):
+    print(f'{member.display_name} left the party')
+
+@client.event
+async def event_party_update(party):
+    print(f'Party updated')
+
+@client.event
+async def event_party_member_update(member):
+    print(f'{member.display_name} updated their member state')
+
+@client.event
+async def event_party_member_promote(old_leader, new_leader):
+    print(f'{new_leader.display_name} is now the party leader')
+
+@client.event
+async def event_party_member_kick(member):
+    print(f'{member.display_name} was kicked')
+
+@client.event
+async def event_party_member_disconnect(member):
+    print(f'{member.display_name} disconnected')
+```
+
+## Advanced examples
+
+### Mirror party leader's cosmetics
+
+```python
+@client.event
+async def event_party_member_update(member):
+    if member.leader:
+        # Copy leader's outfit
+        await client.party.me.set_outfit(member.outfit)
+        await client.party.me.set_backpack(member.backpack)
+        await client.party.me.set_pickaxe(member.pickaxe)
+```
+
+### Auto-ready when all members are ready
+
+```python
+@client.event
+async def event_party_member_update(member):
+    # Check if all members (except us) are ready
+    all_ready = all(
+        m.ready != rebootpy.ReadyState.NOT_READY 
+        for m in client.party.members 
+        if m.id != client.user.id
+    )
+    
+    if all_ready:
+        await client.party.me.set_ready(rebootpy.ReadyState.READY)
+```
+
+### Party size limit enforcement
+
+```python
+@client.event
+async def event_party_member_join(member):
+    if client.party.member_count > 4:
+        # Kick new member if party is full
+        if member.id != client.user.id:
+            await member.kick()
+```
+
+## Default party configuration
+
+Set default party settings when creating the client:
+
+```python
+import functools
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(),
+    default_party_config=rebootpy.DefaultPartyConfig(
+        privacy=rebootpy.PartyPrivacy.PUBLIC,
+        max_size=16,
+        joinability=rebootpy.PartyJoinability.OPEN
+    ),
+    default_party_member_config=rebootpy.DefaultPartyMemberConfig(
+        meta=(
+            functools.partial(
+                rebootpy.ClientPartyMember.set_outfit,
+                'CID_175_Athena_Commando_M_Celestial'
+            ),
+            functools.partial(
+                rebootpy.ClientPartyMember.set_backpack,
+                'BID_105_GhostPortal'
+            )
+        )
+    )
+)
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Party concepts" icon="users" href="/concepts/parties">
+    Learn more about how parties work
+  </Card>
+  <Card title="Party API reference" icon="code" href="/api/party">
+    Full Party class documentation
+  </Card>
+  <Card title="Events reference" icon="bolt" href="/concepts/events">
+    All available party events
+  </Card>
+  <Card title="Enums reference" icon="list" href="/api/enums">
+    Party privacy and state enums
+  </Card>
+</CardGroup>

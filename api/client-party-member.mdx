@@ -1,0 +1,669 @@
+---
+title: "ClientPartyMember"
+description: "ClientPartyMember class API reference"
+---
+
+## ClientPartyMember
+
+Represents the client's party member. Inherits all attributes and methods from [PartyMember](/api/party-member).
+
+### Additional Methods
+
+#### edit
+
+```python
+async def edit(*coros: List[Union[Awaitable, functools.partial]]) -> None
+```
+
+Edits multiple meta parts at once.
+
+<ParamField path="*coros" type="Union[Awaitable, functools.partial]" required>
+  A list of coroutines that should be included in the edit.
+</ParamField>
+
+**Example:**
+```python
+from functools import partial
+
+async def edit_client_member():
+    member = client.party.me
+    await member.edit(
+        member.set_outfit('CID_175_Athena_Commando_M_Celestial'),
+        partial(member.set_banner, icon="OtherBanner28", season_level=100)
+    )
+```
+
+**Raises:**
+- `HTTPException` - Something went wrong while editing.
+
+#### edit_and_keep
+
+```python
+async def edit_and_keep(*coros: List[functools.partial]) -> None
+```
+
+Edits multiple meta parts at once and keeps the changes for when the bot joins other parties.
+
+<ParamField path="*coros" type="functools.partial" required>
+  A list of partials of coroutines that should be included in the edit.
+</ParamField>
+
+**Example:**
+```python
+from functools import partial
+
+async def edit_and_keep_client_member():
+    member = client.party.me
+    await member.edit_and_keep(
+        partial(member.set_outfit, 'CID_175_Athena_Commando_M_Celestial'),
+        partial(member.set_banner, icon="OtherBanner28", season_level=100)
+    )
+```
+
+**Raises:**
+- `HTTPException` - Something went wrong while editing.
+
+#### leave
+
+```python
+async def leave() -> ClientParty
+```
+
+Leaves the party.
+
+<ResponseField name="return" type="ClientParty">
+  The new party the client is connected to after leaving.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting to leave the party.
+
+#### set_ready
+
+```python
+async def set_ready(state: ReadyState) -> None
+```
+
+Sets the readiness of the client.
+
+<ParamField path="state" type="ReadyState" required>
+  The ready state you wish to set.
+</ParamField>
+
+#### set_outfit
+
+```python
+async def set_outfit(
+    asset: Optional[str] = None,
+    *,
+    key: Optional[str] = None,
+    variants: Optional[List[Dict[str, str]]] = None,
+    enlightenment: Optional[Union[List, Tuple]] = None,
+    corruption: Optional[float] = None
+) -> None
+```
+
+Sets the outfit of the client.
+
+<ParamField path="asset" type="Optional[str]">
+  The CID of the outfit. Defaults to the last set outfit. You don't have to include the full path - the CID is enough.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this skin.
+</ParamField>
+
+<ParamField path="variants" type="Optional[List[Dict[str, str]]]">
+  The variants to use for this outfit. Defaults to `None` which resets variants.
+</ParamField>
+
+<ParamField path="enlightenment" type="Optional[Union[List, Tuple]]">
+  A list/tuple containing exactly two integer values describing the season and level you want to enlighten the current loadout with. Example: `(1, 300)` for season 1, level 300.
+</ParamField>
+
+<ParamField path="corruption" type="Optional[float]">
+  The corruption value to use for the loadout.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_backpack
+
+```python
+async def set_backpack(
+    asset: Optional[str] = None,
+    *,
+    key: Optional[str] = None,
+    variants: Optional[List[Dict[str, str]]] = None,
+    enlightenment: Optional[Union[List, Tuple]] = None,
+    corruption: Optional[float] = None
+) -> None
+```
+
+Sets the backpack of the client.
+
+<ParamField path="asset" type="Optional[str]">
+  The BID of the backpack. Defaults to the last set backpack.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this backpack.
+</ParamField>
+
+<ParamField path="variants" type="Optional[List[Dict[str, str]]]">
+  The variants to use for this backpack. Defaults to `None` which resets variants.
+</ParamField>
+
+<ParamField path="enlightenment" type="Optional[Union[List, Tuple]]">
+  A list/tuple containing exactly two integer values describing the season and level.
+</ParamField>
+
+<ParamField path="corruption" type="Optional[float]">
+  The corruption value to use for the loadout.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_backpack
+
+```python
+async def clear_backpack() -> None
+```
+
+Clears the currently set backpack.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_pet
+
+```python
+async def set_pet(
+    asset: Optional[str] = None,
+    *,
+    key: Optional[str] = None,
+    variants: Optional[List[Dict[str, str]]] = None
+) -> None
+```
+
+Sets the pet of the client.
+
+<ParamField path="asset" type="Optional[str]">
+  The ID of the pet. Defaults to the last set pet.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this pet.
+</ParamField>
+
+<ParamField path="variants" type="Optional[List[Dict[str, str]]]">
+  The variants to use for this pet. Defaults to `None` which resets variants.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_pet
+
+```python
+async def clear_pet() -> None
+```
+
+Clears the currently set pet.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_pickaxe
+
+```python
+async def set_pickaxe(
+    asset: Optional[str] = None,
+    *,
+    key: Optional[str] = None,
+    variants: Optional[List[Dict[str, str]]] = None
+) -> None
+```
+
+Sets the pickaxe of the client.
+
+<ParamField path="asset" type="Optional[str]">
+  The PID of the pickaxe. Defaults to the last set pickaxe.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this pickaxe.
+</ParamField>
+
+<ParamField path="variants" type="Optional[List[Dict[str, str]]]">
+  The variants to use for this pickaxe. Defaults to `None` which resets variants.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_contrail
+
+```python
+async def set_contrail(
+    asset: Optional[str] = None,
+    *,
+    key: Optional[str] = None,
+    variants: Optional[List[Dict[str, str]]] = None
+) -> None
+```
+
+Sets the contrail of the client.
+
+<ParamField path="asset" type="Optional[str]">
+  The ID of the contrail. Defaults to the last set contrail.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this contrail.
+</ParamField>
+
+<ParamField path="variants" type="Optional[List[Dict[str, str]]]">
+  The variants to use for this contrail. Defaults to `None` which resets variants.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_contrail
+
+```python
+async def clear_contrail() -> None
+```
+
+Clears the currently set contrail.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_kicks
+
+```python
+async def set_kicks(
+    asset: Optional[str] = None,
+    *,
+    key: Optional[str] = None,
+    variants: Optional[List[Dict[str, str]]] = None
+) -> None
+```
+
+Sets the kicks (shoes) of the client.
+
+<ParamField path="asset" type="Optional[str]">
+  The ID of the kicks. Defaults to the last set of kicks.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for these kicks.
+</ParamField>
+
+<ParamField path="variants" type="Optional[List[Dict[str, str]]]">
+  The variants to use for these kicks.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_kicks
+
+```python
+async def clear_kicks() -> None
+```
+
+Clears the currently set kicks.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### equip_crown
+
+```python
+async def equip_crown(hold_crown: int = True) -> None
+```
+
+Set whether the user is wearing a crown or not.
+
+<ParamField path="hold_crown" type="bool">
+  Whether you want the user to wear a crown or not. Defaults to `True`.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_victory_crowns
+
+```python
+async def set_victory_crowns(crowns: int = 0) -> None
+```
+
+Set the amount of victory crowns the user has (must use the 'Crowning Achievement' emote to show).
+
+<ParamField path="crowns" type="int">
+  Amount of crowns the user has. Defaults to `0` to clear crowns.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_emote
+
+```python
+async def set_emote(
+    asset: str,
+    *,
+    run_for: Optional[float] = None,
+    key: Optional[str] = None,
+    section: Optional[int] = None
+) -> None
+```
+
+Sets the emote of the client.
+
+<ParamField path="asset" type="str" required>
+  The EID of the emote.
+</ParamField>
+
+<ParamField path="run_for" type="Optional[float]">
+  Seconds the emote should run for before being cancelled. `None` (default) means it will run indefinitely.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this emote.
+</ParamField>
+
+<ParamField path="section" type="Optional[int]">
+  The section.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_jam_emote
+
+```python
+async def set_jam_emote(
+    asset: str,
+    *,
+    run_for: Optional[float] = None,
+    key: Optional[str] = None,
+    section: Optional[int] = None
+) -> None
+```
+
+Sets the jam emote of the client.
+
+<ParamField path="asset" type="str" required>
+  The EID of the jam emote.
+</ParamField>
+
+<ParamField path="run_for" type="Optional[float]">
+  Seconds the jam emote should run for before being cancelled. `None` (default) means it will run indefinitely.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this emote.
+</ParamField>
+
+<ParamField path="section" type="Optional[int]">
+  The section.
+</ParamField>
+
+<Note>
+  If you only have the Jam Track ID of the jam track you want to play, you can replace `sid` with `eid` and then add either `_vox`, `_drum`, `_lead`, or `_bass` to the end depending on what instrument you want to use. e.g., `sid_placeholder_10` becomes `eid_placeholder_10_vox`.
+</Note>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_emoji
+
+```python
+async def set_emoji(
+    asset: str,
+    *,
+    run_for: Optional[float] = 2,
+    key: Optional[str] = None,
+    section: Optional[int] = None
+) -> None
+```
+
+Sets the emoji of the client.
+
+<ParamField path="asset" type="str" required>
+  The ID of the emoji.
+</ParamField>
+
+<ParamField path="run_for" type="Optional[float]">
+  Seconds the emoji should run for before being cancelled. `None` means it will run indefinitely. Defaults to `2` seconds which is roughly the time an emoji naturally plays for.
+</ParamField>
+
+<ParamField path="key" type="Optional[str]">
+  The encryption key to use for this emoji.
+</ParamField>
+
+<ParamField path="section" type="Optional[int]">
+  The section.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_emote
+
+```python
+async def clear_emote() -> None
+```
+
+Clears/stops the emote currently playing.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_banner
+
+```python
+async def set_banner(
+    icon: Optional[str] = None,
+    color: Optional[str] = None,
+    season_level: Optional[int] = None
+) -> None
+```
+
+Sets the banner of the client.
+
+<ParamField path="icon" type="Optional[str]">
+  The icon to use. Defaults to `standardbanner15`.
+</ParamField>
+
+<ParamField path="color" type="Optional[str]">
+  The color to use. Defaults to `defaultcolor15`.
+</ParamField>
+
+<ParamField path="season_level" type="Optional[int]">
+  The season level. Defaults to `1`.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_battlepass_info
+
+```python
+async def set_battlepass_info(
+    has_purchased: Optional[bool] = None,
+    level: Optional[int] = None
+) -> None
+```
+
+Sets the battlepass info of the client.
+
+<Warning>
+  None of this is shown visually in-game anymore, including level (you will need to use the `season_level` parameter in `set_banner()` to show visual level) but will be kept in the library since it is still set by the real game client.
+</Warning>
+
+<ParamField path="has_purchased" type="Optional[bool]">
+  Whether or not you have purchased the battle pass. Defaults to `False`.
+</ParamField>
+
+<ParamField path="level" type="Optional[int]">
+  Sets the battle pass level (not the shown level). Defaults to `1`.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_position
+
+```python
+async def set_position(position: int) -> None
+```
+
+Sets the client's party position.
+
+<ParamField path="position" type="int" required>
+  An integer ranging from 0-15. If a position is already held by someone else, then the client and the existing holder will swap positions.
+</ParamField>
+
+**Raises:**
+- `ValueError` - The passed position is out of bounds.
+- `HTTPException` - An error occurred while requesting.
+
+#### set_in_match
+
+```python
+async def set_in_match() -> None
+```
+
+Sets the client's party member in a visible match state.
+
+<Note>
+  This is only visual in the party and is not a method for joining a match.
+</Note>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_in_match
+
+```python
+async def clear_in_match() -> None
+```
+
+Clears the client's "in match" state.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_lobby_map_marker
+
+```python
+async def set_lobby_map_marker(x: float, y: float) -> None
+```
+
+Sets the client's lobby map marker.
+
+<ParamField path="x" type="float" required>
+  The horizontal x coordinate. The x range is roughly `-135000.0 <= x <= 135000`.
+</ParamField>
+
+<ParamField path="y" type="float" required>
+  The vertical y coordinate. The y range is roughly `-135000.0 <= y <= 135000`.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### clear_lobby_map_marker
+
+```python
+async def clear_lobby_map_marker() -> None
+```
+
+Clears and hides the client's current lobby map marker.
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### request_playlist
+
+```python
+async def request_playlist(playlist_id: str) -> None
+```
+
+Request a playlist to update the party to. A real client should always grant this request.
+
+<ParamField path="playlist_id" type="str" required>
+  The playlist ID to request.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.
+
+#### set_instruments
+
+```python
+async def set_instruments(
+    bass: Optional[str] = None,
+    bass_variants: Optional[str] = None,
+    guitar: Optional[str] = None,
+    guitar_variants: Optional[str] = None,
+    drums: Optional[str] = None,
+    drums_variants: Optional[str] = None,
+    keytar: Optional[str] = None,
+    keytar_variants: Optional[str] = None,
+    microphone: Optional[str] = None,
+    microphone_variants: Optional[str] = None
+) -> None
+```
+
+Sets the client's instruments for use in jam emotes.
+
+<ParamField path="bass" type="Optional[str]">
+  The ID of the bass instrument.
+</ParamField>
+
+<ParamField path="bass_variants" type="Optional[dict]">
+  The raw variants for the bass instrument.
+</ParamField>
+
+<ParamField path="guitar" type="Optional[str]">
+  The ID of the guitar instrument.
+</ParamField>
+
+<ParamField path="guitar_variants" type="Optional[dict]">
+  The raw variants for the guitar instrument.
+</ParamField>
+
+<ParamField path="drums" type="Optional[str]">
+  The ID of the drums instrument.
+</ParamField>
+
+<ParamField path="drums_variants" type="Optional[dict]">
+  The raw variants for the drums instrument.
+</ParamField>
+
+<ParamField path="keytar" type="Optional[str]">
+  The ID of the keytar instrument.
+</ParamField>
+
+<ParamField path="keytar_variants" type="Optional[dict]">
+  The raw variants for the keytar instrument.
+</ParamField>
+
+<ParamField path="microphone" type="Optional[str]">
+  The ID of the microphone instrument.
+</ParamField>
+
+<ParamField path="microphone_variants" type="Optional[dict]">
+  The raw variants for the microphone instrument.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - An error occurred while requesting.

@@ -1,0 +1,151 @@
+---
+title: Installation
+description: How to install rebootpy on your system
+---
+
+## Requirements
+
+Before installing rebootpy, ensure you have Python installed on your system. rebootpy supports Python 3.7 and above.
+
+<Note>
+  rebootpy requires Python 3.7.0 or higher to function properly.
+</Note>
+
+## Installing with pip
+
+The easiest way to install rebootpy is using pip, Python's package manager.
+
+<Steps>
+  <Step title="Open your terminal or command prompt">
+    Depending on your operating system, open the appropriate command-line interface.
+  </Step>
+
+  <Step title="Install rebootpy">
+    Run the appropriate command for your system:
+
+    <CodeGroup>
+      ```bash Windows
+      py -3 -m pip install -U rebootpy
+      ```
+
+      ```bash Linux/macOS
+      python3 -m pip install -U rebootpy
+      ```
+
+      ```bash Specific Python Version
+      # For Python 3.10
+      python3.10 -m pip install -U rebootpy
+
+      # For Python 3.11
+      python3.11 -m pip install -U rebootpy
+
+      # For Python 3.12
+      python3.12 -m pip install -U rebootpy
+      ```
+    </CodeGroup>
+
+    The `-U` flag ensures you get the latest version of rebootpy.
+  </Step>
+
+  <Step title="Verify installation">
+    After installation, you can verify that rebootpy was installed correctly by checking the version:
+
+    ```bash
+    python -c "import rebootpy; print(rebootpy.__version__)"
+    ```
+
+    This should display the installed version number (e.g., `1.0.0`).
+  </Step>
+</Steps>
+
+## Dependencies
+
+rebootpy automatically installs the following dependencies:
+
+- **aiohttp** (>=3.12.7) - Asynchronous HTTP client/server framework
+- **aioconsole** (>=0.1.15) - Asynchronous console and interfaces
+- **cryptography** - Cryptographic recipes and primitives
+
+<Note>
+  These dependencies are installed automatically when you install rebootpy, so you don't need to install them separately.
+</Note>
+
+## Installing from Source
+
+If you want to install the latest development version directly from the GitHub repository:
+
+```bash
+# Clone the repository
+git clone https://github.com/xMistt/rebootpy.git
+cd rebootpy
+
+# Install in development mode
+pip install -e .
+```
+
+<Warning>
+  Installing from source may include unreleased features and breaking changes. Use the stable pip release for production applications.
+</Warning>
+
+## Updating rebootpy
+
+To update rebootpy to the latest version:
+
+<CodeGroup>
+  ```bash Windows
+  py -3 -m pip install -U rebootpy
+  ```
+
+  ```bash Linux/macOS
+  python3 -m pip install -U rebootpy
+  ```
+</CodeGroup>
+
+## Troubleshooting
+
+### Permission Errors
+
+If you encounter permission errors during installation, try:
+
+```bash
+# Add --user flag to install for your user only
+python3 -m pip install -U rebootpy --user
+```
+
+### Python Version Issues
+
+If you have multiple Python versions installed, make sure you're using Python 3.7 or higher:
+
+```bash
+# Check your Python version
+python --version
+
+# Or
+python3 --version
+```
+
+### Virtual Environments (Recommended)
+
+It's recommended to use a virtual environment to avoid conflicts with other packages:
+
+```bash
+# Create a virtual environment
+python3 -m venv rebootpy-env
+
+# Activate it (Linux/macOS)
+source rebootpy-env/bin/activate
+
+# Activate it (Windows)
+rebootpy-env\Scripts\activate
+
+# Install rebootpy in the virtual environment
+pip install rebootpy
+```
+
+## Next Steps
+
+Now that you have rebootpy installed, you're ready to create your first bot!
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Learn how to create your first rebootpy bot
+</Card>

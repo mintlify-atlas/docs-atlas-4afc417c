@@ -1,0 +1,550 @@
+---
+title: "Command"
+description: "Command class and decorators for the commands extension"
+---
+
+## Command
+
+```python
+class Command
+```
+
+A class that implements the protocol for a bot text command. These are not created manually, instead they are created via the decorator or functional interface.
+
+### Attributes
+
+<ResponseField name="name" type="str">
+  The name of the command.
+</ResponseField>
+
+<ResponseField name="callback" type="coroutine">
+  The coroutine that is executed when the command is called.
+</ResponseField>
+
+<ResponseField name="help" type="str">
+  The long help text for the command.
+</ResponseField>
+
+<ResponseField name="brief" type="str">
+  The short help text for the command. If this is not specified then the first line of the long help text is used instead.
+</ResponseField>
+
+<ResponseField name="usage" type="str">
+  A replacement for arguments in the default help text.
+</ResponseField>
+
+<ResponseField name="aliases" type="Union[list, tuple]">
+  The list of aliases the command can be invoked under.
+</ResponseField>
+
+<ResponseField name="enabled" type="bool">
+  A boolean that indicates if the command is currently enabled. If the command is invoked while it is disabled, then `DisabledCommand` is raised to the `event_command_error` event. Defaults to `True`.
+</ResponseField>
+
+<ResponseField name="parent" type="Optional[Command]">
+  The parent command that this command belongs to. `None` if there isn't one.
+</ResponseField>
+
+<ResponseField name="cog" type="Optional[Cog]">
+  The cog that this command belongs to. `None` if there isn't one.
+</ResponseField>
+
+<ResponseField name="checks" type="List[Callable]">
+  A list of predicates that verifies if the command could be executed with the given `Context` as the sole parameter.
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  The message prefixed into the default help command.
+</ResponseField>
+
+<ResponseField name="hidden" type="bool">
+  If `True`, the default help command does not show this in the help output.
+</ResponseField>
+
+<ResponseField name="rest_is_raw" type="bool">
+  If `False` and a keyword-only argument is provided then the keyword only argument is stripped and handled as if it was a regular argument. If `True` then the keyword-only argument will pass in the rest of the arguments in a completely raw matter. Defaults to `False`.
+</ResponseField>
+
+<ResponseField name="invoked_subcommand" type="Optional[Command]">
+  The subcommand that was invoked, if any.
+</ResponseField>
+
+<ResponseField name="ignore_extra" type="bool">
+  If `True`, ignores extraneous strings passed to a command if all its requirements are met. Otherwise `event_command_error` and local error handlers are called with `TooManyArguments`. Defaults to `True`.
+</ResponseField>
+
+<ResponseField name="cooldown_after_parsing" type="bool">
+  If `True`, cooldown processing is done after argument parsing, which calls converters. If `False` then cooldown processing is done first and then the converters are called second. Defaults to `False`.
+</ResponseField>
+
+### Properties
+
+<ResponseField name="clean_params" type="OrderedDict">
+  Retrieves the parameter OrderedDict without the context or self parameters. Useful for inspecting signature.
+</ResponseField>
+
+<ResponseField name="full_parent_name" type="str">
+  Retrieves the fully qualified parent command name. This is the base command name required to execute it. For example, in `?one two three` the parent name would be `one two`.
+</ResponseField>
+
+<ResponseField name="parents" type="List[Command]">
+  Retrieves the parents of this command. If the command has no parents then it returns an empty list. For example in commands `?a b c test`, the parents are `[c, b, a]`.
+</ResponseField>
+
+<ResponseField name="root_parent" type="Optional[Command]">
+  Retrieves the root parent of this command. If the command has no parents then it returns `None`. For example in commands `?a b c test`, the root parent is `a`.
+</ResponseField>
+
+<ResponseField name="qualified_name" type="str">
+  Retrieves the fully qualified command name. This is the full parent name with the command name as well. For example, in `?one two three` the qualified name would be `one two three`.
+</ResponseField>
+
+<ResponseField name="signature" type="str">
+  Returns a POSIX-like signature useful for help command output.
+</ResponseField>
+
+<ResponseField name="short_doc" type="str">
+  Gets the "short" documentation of a command. By default, this is the `brief` attribute. If that lookup leads to an empty string then the first line of the `help` attribute is used instead.
+</ResponseField>
+
+<ResponseField name="cog_name" type="str">
+  The name of the cog this command belongs to. `None` otherwise.
+</ResponseField>
+
+## Methods
+
+### add_check
+
+```python
+command.add_check(func)
+```
+
+Adds a check to the command. This is the non-decorator interface to `@check`.
+
+**Parameters:**
+- `func`: The function that will be used as a check.
+
+### remove_check
+
+```python
+command.remove_check(func)
+```
+
+Removes a check from the command. This function is idempotent and will not raise an exception if the function is not in the command's checks.
+
+**Parameters:**
+- `func`: The function to remove from the checks.
+
+### update
+
+```python
+command.update(**kwargs)
+```
+
+Updates `Command` instance with updated attribute. This works similarly to the `@command` decorator in terms of parameters in that they are passed to the `Command` or subclass constructors, sans the name and callback.
+
+### error
+
+```python
+@command.error
+async def func(ctx: Context, error: Exception):
+    ...
+```
+
+A decorator that registers a coroutine as a local error handler.
+
+A local error handler is an `event_command_error` event limited to a single command.
+
+**Raises:** `TypeError` - The coroutine passed is not actually a coroutine.
+
+### before_invoke
+
+```python
+@command.before_invoke
+async def func(ctx: Context):
+    ...
+```
+
+A decorator that registers a coroutine as a pre-invoke hook.
+
+**Raises:** `TypeError` - The coroutine passed is not actually a coroutine.
+
+### after_invoke
+
+```python
+@command.after_invoke
+async def func(ctx: Context):
+    ...
+```
+
+A decorator that registers a coroutine as a post-invoke hook.
+
+**Raises:** `TypeError` - The coroutine passed is not actually a coroutine.
+
+### is_on_cooldown
+
+```python
+command.is_on_cooldown(ctx)
+```
+
+Checks whether the command is currently on cooldown.
+
+**Parameters:**
+- `ctx` (Context): The invocation context to use when checking the commands cooldown status.
+
+**Returns:** `bool` - A boolean indicating if the command is on cooldown.
+
+### reset_cooldown
+
+```python
+command.reset_cooldown(ctx)
+```
+
+Resets the cooldown on this command.
+
+**Parameters:**
+- `ctx` (Context): The invocation context to reset the cooldown under.
+
+### can_run
+
+```python
+await command.can_run(ctx)
+```
+
+Checks if the command can be executed by checking all the predicates inside the `checks` attribute. This also checks whether the command is disabled.
+
+**Parameters:**
+- `ctx` (Context): The ctx of the command currently being invoked.
+
+**Returns:** `bool` - A boolean indicating if the command can be invoked.
+
+**Raises:** `CommandError` - Any command error that was raised during a check call will be propagated by this function.
+
+---
+
+## Group
+
+```python
+class Group(GroupMixin, Command)
+```
+
+A class that implements a grouping protocol for commands to be executed as subcommands.
+
+This class is a subclass of `Command` and thus all options valid in `Command` are valid in here as well.
+
+### Attributes
+
+<ResponseField name="invoke_without_command" type="Optional[bool]">
+  Indicates if the group callback should begin parsing and invocation only if no subcommand was found. If this is `False`, then the group callback will always be invoked first. Defaults to `False`.
+</ResponseField>
+
+<ResponseField name="case_insensitive" type="Optional[bool]">
+  Indicates if the group's commands should be case insensitive. Defaults to `None` which means it inherits the parents or bots value.
+</ResponseField>
+
+---
+
+## GroupMixin
+
+```python
+class GroupMixin
+```
+
+A mixin that implements common functionality for classes that behave similar to `Group` and are allowed to register commands.
+
+### Attributes
+
+<ResponseField name="all_commands" type="dict">
+  A mapping of command name to `Command` or subclass objects.
+</ResponseField>
+
+<ResponseField name="case_insensitive" type="Optional[bool]">
+  The passed value telling if the commands should be case insensitive. Defaults to `None`.
+</ResponseField>
+
+### Properties
+
+<ResponseField name="qualified_case_insensitive" type="Optional[bool]">
+  The qualified case insensitive. This means that it will never return `None` as it checks inherited values.
+</ResponseField>
+
+<ResponseField name="commands" type="Set[Command]">
+  A unique set of commands without aliases that are registered.
+</ResponseField>
+
+### Methods
+
+#### add_command
+
+```python
+mixin.add_command(command)
+```
+
+Adds a `Command` or its subclasses into the internal list of commands.
+
+**Parameters:**
+- `command` (Command): The command to add.
+
+**Raises:**
+- `ClientException`: If the command is already registered.
+- `TypeError`: If the command passed is not a subclass of `Command`.
+
+#### remove_command
+
+```python
+mixin.remove_command(name)
+```
+
+Remove a `Command` or subclasses from the internal list of commands. This could also be used as a way to remove aliases.
+
+**Parameters:**
+- `name` (str): The name of the command to remove.
+
+**Returns:** `Optional[Command]` - The command that was removed. If the name is not valid then `None` is returned instead.
+
+#### walk_commands
+
+```python
+for command in mixin.walk_commands():
+    ...
+```
+
+An iterator that recursively walks through all commands and subcommands.
+
+#### get_command
+
+```python
+mixin.get_command(name)
+```
+
+Get a `Command` or subclasses from the internal list of commands. This could also be used as a way to get aliases.
+
+The name could be fully qualified (e.g. `'foo bar'`) will get the subcommand `bar` of the group command `foo`.
+
+**Parameters:**
+- `name` (str): The name of the command to get.
+
+**Returns:** `Optional[Command]` - The command that was requested. If not found, returns `None`.
+
+#### command
+
+```python
+@mixin.command()
+async def my_command(ctx):
+    ...
+```
+
+A shortcut decorator that invokes `@command` and adds it to the internal command list via `add_command()`.
+
+#### group
+
+```python
+@mixin.group()
+async def my_group(ctx):
+    ...
+```
+
+A shortcut decorator that invokes `@group` and adds it to the internal command list via `add_command()`.
+
+---
+
+## Decorators
+
+### @command
+
+```python
+@command(name=None, cls=None, **attrs)
+```
+
+A decorator that transforms a function into a `Command` or if called with `@group`, `Group`.
+
+By default the `help` attribute is received automatically from the docstring of the function and is cleaned up with the use of `inspect.cleandoc`.
+
+**Parameters:**
+- `name` (str): The name to create the command with. By default this uses the function name unchanged.
+- `cls`: The class to construct with. By default this is `Command`. You usually do not change this.
+- `**attrs`: Keyword arguments to pass into the construction of the class denoted by `cls`.
+
+**Raises:**
+- `TypeError`: If the function is not a coroutine or is already a command.
+
+**Example:**
+```python
+@bot.command()
+async def hello(ctx):
+    """Says hello"""
+    await ctx.send('Hello!')
+```
+
+### @group
+
+```python
+@group(name=None, **attrs)
+```
+
+A decorator that transforms a function into a `Group`.
+
+This is similar to the `@command` decorator but the `cls` parameter is set to `Group` by default.
+
+**Example:**
+```python
+@bot.group()
+async def config(ctx):
+    """Manage bot configuration"""
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Invalid config command')
+
+@config.command()
+async def prefix(ctx, new_prefix):
+    """Change the bot prefix"""
+    await ctx.send(f'Prefix changed to {new_prefix}')
+```
+
+### @check
+
+```python
+@check(predicate)
+```
+
+A decorator that adds a check to the `Command` or its subclasses.
+
+These checks should be predicates that take in a single parameter taking a `Context`. If the check returns a `False`-like value then during invocation a `CheckFailure` exception is raised and sent to the `event_command_error` event.
+
+**Parameters:**
+- `predicate` (Callable[[Context], bool]): The predicate to check if the command should be invoked.
+
+**Example:**
+```python
+def check_if_it_is_me(ctx):
+    return ctx.author.id == "8b6373cbbe7d452b8172b5ee67ad53fa"
+
+@bot.command()
+@commands.check(check_if_it_is_me)
+async def only_for_me(ctx):
+    await ctx.send('I know you!')
+```
+
+### @check_any
+
+```python
+@check_any(*checks)
+```
+
+A `@check` that is added that checks if any of the checks passed will pass, i.e. using logical OR.
+
+If all checks fail then `CheckAnyFailure` is raised to signal the failure.
+
+**Parameters:**
+- `*checks` (Callable[[Context], bool]): An argument list of checks that have been decorated with the `@check` decorator.
+
+**Raises:**
+- `TypeError`: A check passed has not been decorated with the `@check` decorator.
+
+**Example:**
+```python
+@bot.command()
+@commands.check_any(commands.is_owner(), is_party_leader())
+async def only_for_owners(ctx):
+    await ctx.send('Hello mister owner!')
+```
+
+### @before_invoke
+
+```python
+@before_invoke(coro)
+```
+
+A decorator that registers a coroutine as a pre-invoke hook.
+
+This allows you to refer to one before invoke hook for several commands that do not have to be within the same cog.
+
+**Example:**
+```python
+async def record_usage(ctx):
+    print(ctx.author, 'used', ctx.command, 'at', ctx.message.created_at)
+
+@bot.command()
+@commands.before_invoke(record_usage)
+async def who(ctx):
+    await ctx.send('i am a bot')
+```
+
+### @after_invoke
+
+```python
+@after_invoke(coro)
+```
+
+A decorator that registers a coroutine as a post-invoke hook.
+
+This allows you to refer to one after invoke hook for several commands that do not have to be within the same cog.
+
+### @cooldown
+
+```python
+@cooldown(rate, per, type=BucketType.default)
+```
+
+A decorator that adds a cooldown to a `Command` or its subclasses.
+
+A cooldown allows a command to only be used a specific amount of times in a specific time frame.
+
+**Parameters:**
+- `rate` (int): The number of times a command can be used before triggering a cooldown.
+- `per` (float): The amount of seconds to wait for a cooldown when it's been triggered.
+- `type` (BucketType): The type of cooldown to have.
+
+**Example:**
+```python
+@bot.command()
+@commands.cooldown(1, 60.0, commands.BucketType.user)
+async def slow_command(ctx):
+    await ctx.send('This command is on cooldown!')
+```
+
+### @max_concurrency
+
+```python
+@max_concurrency(number, per=BucketType.default, *, wait=False)
+```
+
+A decorator that adds a maximum concurrency to a `Command` or its subclasses.
+
+This enables you to only allow a certain number of command invocations at the same time.
+
+**Parameters:**
+- `number` (int): The maximum number of invocations of this command that can be running at the same time.
+- `per` (BucketType): The bucket that this concurrency is based on.
+- `wait` (bool): Whether the command should wait for the queue to be over.
+
+### @dm_only
+
+```python
+@dm_only()
+```
+
+A `@check` that indicates this command must only be used in a DM context. Only private messages are allowed when using the command.
+
+This check raises a special exception, `PrivateMessageOnly` that is inherited from `CheckFailure`.
+
+### @party_only
+
+```python
+@party_only()
+```
+
+A `@check` that indicates this command must only be used in a party context only. Basically, no private messages are allowed when using the command.
+
+This check raises a special exception, `PartyMessageOnly` that is inherited from `CheckFailure`.
+
+### @is_owner
+
+```python
+@is_owner()
+```
+
+A `@check` that checks if the person invoking this command is the owner of the bot.
+
+This is powered by `Bot.is_owner()`.
+
+This check raises a special exception, `NotOwner` that is derived from `CheckFailure`.

@@ -1,0 +1,242 @@
+---
+title: Presence
+description: API reference for Presence, PresenceParty, and PresenceGameplayStats classes
+---
+
+## Presence
+
+Represents a presence received from a friend.
+
+### Properties
+
+#### client
+
+`Client` - The client.
+
+#### available
+
+`bool` - Whether or not the user is online. `True` if the friend **is** or **went** online, `False` if the friend **went** offline.
+
+#### away
+
+`AwayStatus` - The user's away status.
+
+#### friend
+
+`Friend` - The friend you received this presence from.
+
+#### platform
+
+`Platform` - The platform this presence was sent from.
+
+#### received_at
+
+`datetime.datetime` - The UTC time of when the client received this presence.
+
+#### status
+
+`str` - The friend's status.
+
+#### playing
+
+`bool` - Says if friend is playing.
+
+#### joinable
+
+`bool` - Says if friend is joinable.
+
+#### session_id
+
+`str` - The friend's current session id. Often referred to as server key or game key. Returns `None` if the friend is not currently in a game.
+
+#### has_properties
+
+`bool` - `True` if the presence has properties else `False`.
+
+<Warning>
+All attributes below this point will be `None` if `has_properties` is `False`.
+</Warning>
+
+#### party
+
+`PresenceParty` - The friend's party.
+
+#### gameplay_stats
+
+`Optional[PresenceGameplayStats]` - The friend's gameplay stats. Will be `None` if no gameplay stats are currently available.
+
+#### homebase_rating
+
+`str` - The friend's homebase rating.
+
+#### lfg
+
+`bool` - `True` if the friend is currently looking for a game.
+
+#### sub_game
+
+`int` - The friend's current subgame.
+
+#### in_unjoinable_match
+
+`bool` - `True` if friend is in unjoinable match else `False`.
+
+#### playlist
+
+`str` - The friend's current playlist.
+
+#### party_size
+
+`int` - The size of the friend's party.
+
+#### max_party_size
+
+`int` - The max size of the friend's party.
+
+#### game_session_join_key
+
+`str` - The join key of the friend's session.
+
+#### server_player_count
+
+`str` - The playercount of the friend's server.
+
+## PresenceParty
+
+Represents a party received from presence.
+
+Before accessing any of this class' attributes or functions, you should always check if the party is private:
+
+```python
+@client.event
+async def event_friend_presence(before, after):
+    # after is the newly received presence
+    presence = after
+
+    # check if presence is from the account 'Terbau'
+    # NOTE: you should always use id over display_name
+    # but for this example I've used display_name just
+    # to demonstrate.
+    if presence.friend.display_name != 'Terbau':
+        return
+
+    # check if party is private
+    if presence.party.private:
+        return
+
+    # if all the checks above succeed we join the party
+    await presence.party.join()
+```
+
+<Note>
+If the party is private, all attributes below the `private` attribute will be `None`.
+</Note>
+
+### Properties
+
+#### client
+
+`Client` - The client.
+
+#### private
+
+`bool` - `True` if the party is private else `False`.
+
+#### platform
+
+`Platform` - The platform of the friend.
+
+#### id
+
+`str` - The party's id.
+
+#### party_type_id
+
+`str` - The party's type id.
+
+#### key
+
+`str` - The party's key.
+
+#### app_id
+
+`str` - The party's app id.
+
+#### build_id
+
+`str` - The party's build id. Similar format to `Client.party_build_id`.
+
+#### net_cl
+
+`str` - The party's net_cl. Similar format to `Client.net_cl`.
+
+#### party_flags
+
+`str` - The party's flags.
+
+#### not_accepting_reason
+
+`str` - The party's not accepting reason.
+
+#### playercount
+
+`int` - The party's playercount.
+
+### Methods
+
+#### join()
+
+```python
+async def join() -> ClientParty
+```
+
+Joins the friend's party.
+
+**Raises:**
+- `PartyError` - You are already a member of this party.
+- `Forbidden` - The party is private.
+- `HTTPException` - Something else went wrong when trying to join this party.
+
+**Returns:** `ClientParty` - The party that was just joined.
+
+## PresenceGameplayStats
+
+Represents gameplay stats received from presence.
+
+### Properties
+
+#### friend
+
+`Friend` - The friend these stats belong to.
+
+#### state
+
+`str` - The state.
+
+<Note>
+It's not really known what value this property might hold. This is pretty much always an empty string.
+</Note>
+
+#### playlist
+
+`str` - The playlist.
+
+<Note>
+The playlist from the gameplay stats property usually isn't updated. Consider using `Presence.playlist` instead as that seems to always be the correct playlist.
+</Note>
+
+#### players_alive
+
+`int` - The amount of players alive in the current game.
+
+#### kills
+
+`int` - The amount of kills the friend currently has. Aliased to `num_kills` as well for legacy reasons.
+
+#### num_kills
+
+`int` - Alias for `kills`.
+
+#### fell_to_death
+
+`bool` - `True` if friend fell to death in its current game, else `False`.

@@ -1,0 +1,282 @@
+---
+title: DeviceAuth
+description: Authenticate with device auth credentials
+---
+
+Authenticates using device auth details (device ID, account ID, and secret). This is the recommended authentication method for production applications as it doesn't require user interaction and the credentials can be reused.
+
+<Note>
+  When an account's password is reset, all device authentications associated with the account are removed. If your device ID and secret are compromised, resetting your password will invalidate all authentication data, making it useless to anyone who may have accessed the leaked data.
+</Note>
+
+## Class Signature
+
+```python
+class DeviceAuth(Auth):
+    def __init__(self, device_id: str, account_id: str, secret: str, **kwargs: Any) -> None
+```
+
+## Parameters
+
+<ParamField path="device_id" type="str" required>
+  The device ID.
+</ParamField>
+
+<ParamField path="account_id" type="str" required>
+  The account's ID.
+</ParamField>
+
+<ParamField path="secret" type="str" required>
+  The secret (32 character string).
+</ParamField>
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Use this if you're making HTTP requests that aren't already implemented.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the account ID.
+</ResponseField>
+
+## Methods
+
+### eula_check_needed
+
+```python
+def eula_check_needed() -> bool
+```
+
+Returns whether EULA check is needed.
+
+**Returns:** `False` (device auth doesn't require EULA check)
+
+### ios_authenticate
+
+```python
+async def ios_authenticate(priority: int = 0) -> dict
+```
+
+Performs iOS authentication using device auth credentials.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** Authentication data dictionary
+
+**Raises:**
+- `AuthException`: If the device auth details are invalid
+
+**Handles corrective actions:**
+- **DATE_OF_BIRTH**: Automatically generates and submits a random date of birth if required
+
+### authenticate
+
+```python
+async def authenticate(priority: int = 0) -> None
+```
+
+Authenticates the client and sets up all required tokens.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Side effects:**
+- Updates iOS token data
+- Kills other sessions (if `client.kill_other_sessions` is `True`)
+- Obtains and updates chat, EAS, and EOS tokens
+- Sets up the client user
+
+### reauthenticate
+
+```python
+async def reauthenticate(priority: int = 0) -> None
+```
+
+Used for reauthenticating if refreshing fails.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+## Example Usage
+
+### Basic usage
+
+```python
+import rebootpy
+
+client = rebootpy.Client(
+    auth=rebootpy.DeviceAuth(
+        device_id='your-device-id-here',
+        account_id='your-account-id-here',
+        secret='your-secret-here'
+    )
+)
+
+await client.start()
+```
+
+### Loading from environment variables
+
+```python
+import rebootpy
+import os
+
+client = rebootpy.Client(
+    auth=rebootpy.DeviceAuth(
+        device_id=os.getenv('DEVICE_ID'),
+        account_id=os.getenv('ACCOUNT_ID'),
+        secret=os.getenv('DEVICE_SECRET')
+    )
+)
+
+await client.start()
+```
+
+### Loading from a JSON file
+
+```python
+import rebootpy
+import json
+
+with open('device_auth.json', 'r') as f:
+    auth_data = json.load(f)
+
+client = rebootpy.Client(
+    auth=rebootpy.DeviceAuth(
+        device_id=auth_data['device_id'],
+        account_id=auth_data['account_id'],
+        secret=auth_data['secret']
+    )
+)
+
+await client.start()
+```
+
+## Generating Device Auth Credentials
+
+To generate device auth credentials, you need to first authenticate using another method (like `AuthorizationCodeAuth` or `DeviceCodeAuth`), then generate the device auth:
+
+```python
+import rebootpy
+import json
+
+# First login with another auth method
+client = rebootpy.Client(
+    auth=rebootpy.AuthorizationCodeAuth(
+        code='your-authorization-code'
+    )
+)
+
+@client.event
+async def event_ready():
+    # Generate device auth
+    device_auth = await client.auth.generate_device_auth()
+    
+    # Save to file
+    with open('device_auth.json', 'w') as f:
+        json.dump({
+            'device_id': device_auth['deviceId'],
+            'account_id': device_auth['accountId'],
+            'secret': device_auth['secret']
+        }, f)
+    
+    print('Device auth saved to device_auth.json')
+    await client.close()
+
+await client.start()
+```
+
+## Using with AdvancedAuth
+
+The recommended approach is to use `AdvancedAuth` which automatically generates and manages device auth:
+
+```python
+import rebootpy
+import json
+
+# Load device auth if it exists
+try:
+    with open('device_auth.json', 'r') as f:
+        device_auth = json.load(f)
+except FileNotFoundError:
+    device_auth = {}
+
+client = rebootpy.Client(
+    auth=rebootpy.AdvancedAuth(
+        device_id=device_auth.get('device_id'),
+        account_id=device_auth.get('account_id'),
+        secret=device_auth.get('secret'),
+        prompt_device_code=True  # Fallback to device code if no device auth
+    )
+)
+
+@client.event
+async def event_device_auth_generate(details):
+    # Save the generated device auth
+    with open('device_auth.json', 'w') as f:
+        json.dump(details, f)
+    print('Device auth saved!')
+
+await client.start()
+```
+
+## Security Best Practices
+
+<Warning>
+  Device auth credentials are sensitive. Treat them like passwords:
+  - Never commit them to version control
+  - Store them securely (environment variables, encrypted files, secrets managers)
+  - Don't share them publicly
+  - Reset your Epic Games password if they're compromised
+</Warning>
+
+### Recommended storage methods:
+
+1. **Environment variables** (recommended for production)
+2. **Encrypted configuration files**
+3. **Secrets management services** (AWS Secrets Manager, Azure Key Vault, etc.)
+4. **Local JSON files with restricted permissions** (development only)
+
+## Error Handling
+
+If the device auth credentials are invalid, an `AuthException` is raised with the message:
+
+```
+Invalid device auth details passed.
+```
+
+The underlying error will have the message code:
+```
+errors.com.epicgames.account.invalid_account_credentials
+```
+
+## Managing Multiple Device Auths
+
+You can have multiple device auths per account. To view all device auths:
+
+```python
+device_auths = await client.auth.fetch_device_auths()
+for auth in device_auths:
+    print(f"Device: {auth['deviceId']}")
+    print(f"Created: {auth['created']['dateTime']}")
+    print(f"Last Access: {auth['lastAccess']['dateTime']}")
+```
+
+To delete a specific device auth:
+
+```python
+await client.auth.delete_device_auth('device-id-to-delete')
+```
+
+## Source
+
+View source: [rebootpy/auth.py:654](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L654)

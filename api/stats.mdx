@@ -1,0 +1,203 @@
+---
+title: Stats
+description: API reference for the StatsV2 and StatsCollection classes
+---
+
+## StatsV2
+
+Represents a user's Battle Royale stats on Fortnite.
+
+### Properties
+
+#### user
+
+**Type:** `User`
+
+The user these stats belong to.
+
+#### start_time
+
+**Type:** `datetime.datetime`
+
+The UTC start time of the stats retrieved.
+
+#### end_time
+
+**Type:** `datetime.datetime`
+
+The UTC end time of the stats retrieved.
+
+#### raw
+
+**Type:** `dict`
+
+The raw stats data.
+
+### Methods
+
+#### get_stats
+
+```python
+get_stats() -> dict
+```
+
+Gets the stats for this user.
+
+**Returns:**
+- `dict` - Mapping of the user's stats. All stats are mapped to their respective gamemodes.
+
+**Example:**
+
+```python
+user = await client.fetch_user('Ninja')
+stats = await client.fetch_br_stats(user.id)
+all_stats = stats.get_stats()
+print(all_stats['keyboardmouse']['defaultsolo'])
+```
+
+#### get_combined_stats
+
+```python
+get_combined_stats(platforms: bool = True) -> dict
+```
+
+Gets combined stats for this user.
+
+**Parameters:**
+- `platforms` (bool) - `True` if the combined stats should be mapped to their respective platform. `False` to return all stats combined across platforms. Defaults to `True`.
+
+**Returns:**
+- `dict` - Mapping of the user's stats combined. All stats are added together and no longer sorted into their respective gamemodes.
+
+**Example:**
+
+```python
+user = await client.fetch_user('Ninja')
+stats = await client.fetch_br_stats(user.id)
+combined = stats.get_combined_stats(platforms=False)
+print(f"Total wins: {combined['wins']}")
+```
+
+#### get_kd
+
+```python
+get_kd(data: dict) -> float
+```
+
+Gets the K/D ratio of a gamemode.
+
+**Parameters:**
+- `data` (dict) - A dict which at least includes the keys: `kills`, `matchesplayed`, and `wins`.
+
+**Returns:**
+- `float` - Returns the K/D with a decimal point accuracy of two.
+
+**Example:**
+
+```python
+user = await client.fetch_user('SypherPK')
+stats = await client.fetch_br_stats(user.id)
+kd = stats.get_kd(stats.get_stats()['touch']['defaultsolo'])
+print(f"K/D: {kd}")
+```
+
+#### get_winpercentage
+
+```python
+get_winpercentage(data: dict) -> float
+```
+
+Gets the win percentage of a gamemode.
+
+**Parameters:**
+- `data` (dict) - A dict which at least includes the keys: `matchesplayed` and `wins`.
+
+**Returns:**
+- `float` - Returns the win percentage with a decimal point accuracy of two.
+
+**Example:**
+
+```python
+user = await client.fetch_user('6v.')
+stats = await client.fetch_br_stats(user.id)
+winrate = stats.get_winpercentage(stats.get_stats()['keyboardmouse']['nobuildbr_squad'])
+print(f"Win rate: {winrate}%")
+```
+
+#### create_stat
+
+```python
+@staticmethod
+create_stat(stat: str, input: V2Input, playlist: str) -> str
+```
+
+Creates a stat key from components.
+
+**Parameters:**
+- `stat` (str) - The stat name (e.g., 'kills', 'wins').
+- `input` (V2Input) - The input type.
+- `playlist` (str) - The playlist name.
+
+**Returns:**
+- `str` - The formatted stat key.
+
+---
+
+## StatsCollection
+
+Represents a user's Battle Royale stats collection on Fortnite.
+
+### Properties
+
+#### user
+
+**Type:** `User`
+
+The user this collection belongs to.
+
+#### start_time
+
+**Type:** `datetime.datetime`
+
+The UTC start time of the stats retrieved.
+
+#### end_time
+
+**Type:** `datetime.datetime`
+
+The UTC end time of the stats retrieved.
+
+#### name
+
+**Type:** `str`
+
+The collection name.
+
+#### raw
+
+**Type:** `dict`
+
+The raw collection data.
+
+### Methods
+
+#### get_stats
+
+```python
+get_stats() -> dict
+```
+
+Gets the stats collection for this user.
+
+**Returns:**
+- `dict` - Mapping of the user's collection.
+
+**Example:**
+
+```python
+user = await client.fetch_user('Ninja')
+collection = await client.fetch_br_stats_collection(user.id)
+stats = collection.get_stats()
+print(f"Collection: {collection.name}")
+print(stats)
+```

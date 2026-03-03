@@ -1,0 +1,707 @@
+---
+title: Enums
+description: Enumeration classes used throughout rebootpy
+---
+
+Enumerations provide type-safe constants for various Fortnite-related values. All enums inherit from the base `Enum` class which provides additional helper methods.
+
+## Base Enum Class
+
+All enums in rebootpy inherit from a custom `Enum` class that extends Python's standard `enum.Enum`:
+
+### Methods
+
+<ResponseField name="get_random_member()" type="classmethod">
+  Returns a random member from the enum.
+  
+  **Returns:** Optional enum member
+</ResponseField>
+
+<ResponseField name="get_random_name()" type="classmethod">
+  Returns the name of a random enum member.
+  
+  **Returns:** Optional[str]
+</ResponseField>
+
+<ResponseField name="get_random_value()" type="classmethod">
+  Returns the value of a random enum member.
+  
+  **Returns:** Optional[Any]
+</ResponseField>
+
+## PartyPrivacy
+
+Defines privacy settings for parties.
+
+### Members
+
+<ResponseField name="PUBLIC" type="dict">
+  Party is open to everyone.
+  
+  ```python
+  {
+      'partyType': 'Public',
+      'inviteRestriction': 'AnyMember',
+      'onlyLeaderFriendsCanJoin': False,
+      'presencePermission': 'Anyone',
+      'invitePermission': 'Anyone',
+      'acceptingMembers': True
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="FRIENDS_ALLOW_FRIENDS_OF_FRIENDS" type="dict">
+  Friends-only party that allows friends of friends.
+  
+  ```python
+  {
+      'partyType': 'FriendsOnly',
+      'inviteRestriction': 'AnyMember',
+      'onlyLeaderFriendsCanJoin': False,
+      'presencePermission': 'Anyone',
+      'invitePermission': 'AnyMember',
+      'acceptingMembers': True
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="FRIENDS" type="dict">
+  Friends-only party restricted to leader's friends.
+  
+  ```python
+  {
+      'partyType': 'FriendsOnly',
+      'inviteRestriction': 'LeaderOnly',
+      'onlyLeaderFriendsCanJoin': True,
+      'presencePermission': 'Leader',
+      'invitePermission': 'Leader',
+      'acceptingMembers': False
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="PRIVATE_ALLOW_FRIENDS_OF_FRIENDS" type="dict">
+  Private party that allows friends of friends.
+  
+  ```python
+  {
+      'partyType': 'Private',
+      'inviteRestriction': 'AnyMember',
+      'onlyLeaderFriendsCanJoin': False,
+      'presencePermission': 'Noone',
+      'invitePermission': 'AnyMember',
+      'acceptingMembers': False
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="PRIVATE" type="dict">
+  Fully private party.
+  
+  ```python
+  {
+      'partyType': 'Private',
+      'inviteRestriction': 'LeaderOnly',
+      'onlyLeaderFriendsCanJoin': True,
+      'presencePermission': 'Noone',
+      'invitePermission': 'Leader',
+      'acceptingMembers': False
+  }
+  ```
+</ResponseField>
+
+### Example
+
+```python
+await party.set_privacy(rebootpy.PartyPrivacy.PRIVATE)
+```
+
+## PartyDiscoverability
+
+Defines party discoverability settings.
+
+### Members
+
+<ResponseField name="ALL" type="str">
+  Value: `"ALL"`
+  
+  Party is discoverable by all.
+</ResponseField>
+
+<ResponseField name="INVITED_ONLY" type="str">
+  Value: `"INVITED_ONLY"`
+  
+  Party is only discoverable by invited members.
+</ResponseField>
+
+## PartyJoinability
+
+Defines who can join the party.
+
+### Members
+
+<ResponseField name="OPEN" type="str">
+  Value: `"OPEN"`
+  
+  Party is open for anyone to join.
+</ResponseField>
+
+<ResponseField name="INVITE_ONLY" type="str">
+  Value: `"INVITE_ONLY"`
+  
+  Party requires an invite to join.
+</ResponseField>
+
+<ResponseField name="INVITE_AND_FORMER" type="str">
+  Value: `"INVITE_AND_FORMER"`
+  
+  Party can be joined by invited members and former members.
+</ResponseField>
+
+## Platform
+
+Fortnite platform identifiers.
+
+### Members
+
+<ResponseField name="WINDOWS" type="str">
+  Value: `"WIN"`
+</ResponseField>
+
+<ResponseField name="MAC" type="str">
+  Value: `"MAC"`
+</ResponseField>
+
+<ResponseField name="PLAYSTATION / PLAYSTATION_4" type="str">
+  Value: `"PSN"`
+  
+  PlayStation 4 platform.
+</ResponseField>
+
+<ResponseField name="PLAYSTATION_5" type="str">
+  Value: `"PS5"`
+</ResponseField>
+
+<ResponseField name="XBOX / XBOX_ONE" type="str">
+  Value: `"XBL"`
+  
+  Xbox One platform.
+</ResponseField>
+
+<ResponseField name="XBOX_X" type="str">
+  Value: `"XSX"`
+  
+  Xbox Series X/S platform.
+</ResponseField>
+
+<ResponseField name="SWITCH" type="str">
+  Value: `"SWT"`
+</ResponseField>
+
+<ResponseField name="IOS" type="str">
+  Value: `"IOS"`
+</ResponseField>
+
+<ResponseField name="ANDROID" type="str">
+  Value: `"AND"`
+</ResponseField>
+
+<ResponseField name="SWITCH_2" type="str">
+  Value: `"SWT2"`
+</ResponseField>
+
+<ResponseField name="UNKNOWN" type="str">
+  Value: `"UNKNOWN"`
+  
+  Default value for unrecognized platforms.
+</ResponseField>
+
+## Region
+
+Fortnite server regions.
+
+### Members
+
+<ResponseField name="NAEAST" type="str">
+  Value: `"NAE"` - North America East
+</ResponseField>
+
+<ResponseField name="NAWEST" type="str">
+  Value: `"NAW"` - North America West
+</ResponseField>
+
+<ResponseField name="NACENTRAL" type="str">
+  Value: `"NAC"` - North America Central
+</ResponseField>
+
+<ResponseField name="EUROPE" type="str">
+  Value: `"EU"` - Europe
+</ResponseField>
+
+<ResponseField name="BRAZIL" type="str">
+  Value: `"BR"` - Brazil
+</ResponseField>
+
+<ResponseField name="OCEANIA" type="str">
+  Value: `"OCE"` - Oceania
+</ResponseField>
+
+<ResponseField name="ASIA" type="str">
+  Value: `"ASIA"` - Asia
+</ResponseField>
+
+<ResponseField name="MIDDLEEAST" type="str">
+  Value: `"ME"` - Middle East
+</ResponseField>
+
+## ReadyState
+
+Party member ready states.
+
+### Members
+
+<ResponseField name="READY" type="str">
+  Value: `"Ready"`
+  
+  Member is ready to play.
+</ResponseField>
+
+<ResponseField name="NOT_READY" type="str">
+  Value: `"NotReady"`
+  
+  Member is not ready.
+</ResponseField>
+
+<ResponseField name="SITTING_OUT" type="str">
+  Value: `"SittingOut"`
+  
+  Member is sitting out.
+</ResponseField>
+
+<ResponseField name="SLEEPING" type="str">
+  Value: `"Away"`
+  
+  Member is away.
+</ResponseField>
+
+### Example
+
+```python
+await client.party.me.set_ready(rebootpy.ReadyState.READY)
+```
+
+## AwayStatus
+
+Presence away status.
+
+### Members
+
+<ResponseField name="ONLINE" type="None">
+  User is online and active.
+</ResponseField>
+
+<ResponseField name="AWAY" type="str">
+  Value: `"away"`
+  
+  User is away.
+</ResponseField>
+
+<ResponseField name="EXTENDED_AWAY" type="str">
+  Value: `"xa"`
+  
+  User is extended away (away for a long time).
+</ResponseField>
+
+## Season
+
+Fortnite seasons with their metadata.
+
+### Attributes
+
+Each season member has the following attributes:
+
+<ResponseField name="start_timestamp" type="int">
+  Unix timestamp when the season started.
+</ResponseField>
+
+<ResponseField name="end_timestamp" type="int">
+  Unix timestamp when the season ended.
+</ResponseField>
+
+<ResponseField name="battlepass_level" type="Optional[str | tuple]">
+  Battle pass level identifier(s) for the season.
+</ResponseField>
+
+<ResponseField name="ranked_tracks" type="Optional[tuple]">
+  Ranked track identifiers for the season (available from Chapter 4 Season 2 onwards).
+</ResponseField>
+
+### Members
+
+**Chapter 1**
+- `C1S1` - Season 1
+- `C1S2` - Season 2
+- `C1S3` - Season 3
+- `C1S4` - Season 4
+- `C1S5` - Season 5
+- `C1S6` - Season 6
+- `C1S7` - Season 7
+- `C1S8` - Season 8
+- `C1S9` - Season 9
+- `C1SX` - Season X
+
+**Chapter 2**
+- `C2S1` - Season 1
+- `C2S2` - Season 2
+- `C2S3` - Season 3
+- `C2S4` - Season 4
+- `C2S5` - Season 5
+- `C2S6` - Season 6
+- `C2S7` - Season 7
+- `C2S8` - Season 8
+
+**Chapter 3**
+- `C3S1` - Season 1
+- `C3S2` - Season 2
+- `C3S3` - Season 3
+- `C3S4` - Season 4
+
+**Chapter 4**
+- `C4S1` - Season 1
+- `C4S2` - Season 2
+- `C4S3` - Season 3
+- `C4S4` - Season 4
+- `C4SOG` - Season OG
+
+**Chapter 5**
+- `C5S1` - Season 1
+- `C5S2` - Season 2
+- `C5S3` - Season 3
+- `C5S4` - Season 4
+- `C5SOG` - Season OG
+
+**Chapter 6**
+- `C6S1` - Season 1
+
+### Example
+
+```python
+season = rebootpy.Season.C5S4
+print(f"Season started: {season.start_timestamp}")
+print(f"Ranked tracks: {season.ranked_tracks}")
+```
+
+## RankingType
+
+Ranked game mode types.
+
+### Members
+
+<ResponseField name="BATTLE_ROYALE" type="str">
+  Value: `"ranked-br"`
+  
+  Standard Battle Royale ranked mode.
+</ResponseField>
+
+<ResponseField name="ZERO_BUILD" type="str">
+  Value: `"ranked-zb"`
+  
+  Zero Build ranked mode.
+</ResponseField>
+
+<ResponseField name="ROCKET_RACING" type="str">
+  Value: `"delmar-competitive"`
+  
+  Rocket Racing competitive mode.
+</ResponseField>
+
+<ResponseField name="RELOAD" type="str">
+  Value: `"ranked_blastberry_build"`
+  
+  Reload mode with building.
+</ResponseField>
+
+<ResponseField name="RELOAD_ZB" type="str">
+  Value: `"ranked_blastberry_nobuild"`
+  
+  Reload mode without building.
+</ResponseField>
+
+<ResponseField name="BALLISTIC" type="str">
+  Value: `"ranked-feral"`
+  
+  Ballistic ranked mode.
+</ResponseField>
+
+<ResponseField name="OG" type="str">
+  Value: `"ranked-figment-build"`
+  
+  OG mode with building.
+</ResponseField>
+
+<ResponseField name="OG_ZERO_BUILD" type="str">
+  Value: `"ranked-figment-nobuild"`
+  
+  OG mode without building.
+</ResponseField>
+
+<ResponseField name="CROWN_JAM" type="str">
+  Value: `"ranked-pimlico"`
+  
+  Crown Jam ranked mode.
+</ResponseField>
+
+## Rank
+
+Ranked mode tiers.
+
+### Members
+
+<ResponseField name="UNRANKED" type="None">
+  Player has no rank.
+</ResponseField>
+
+<ResponseField name="BRONZE_1" type="int">
+  Value: `0` - Bronze I
+</ResponseField>
+
+<ResponseField name="BRONZE_2" type="int">
+  Value: `1` - Bronze II
+</ResponseField>
+
+<ResponseField name="BRONZE_3" type="int">
+  Value: `2` - Bronze III
+</ResponseField>
+
+<ResponseField name="SILVER_1" type="int">
+  Value: `3` - Silver I
+</ResponseField>
+
+<ResponseField name="SILVER_2" type="int">
+  Value: `4` - Silver II
+</ResponseField>
+
+<ResponseField name="SILVER_3" type="int">
+  Value: `5` - Silver III
+</ResponseField>
+
+<ResponseField name="GOLD_1" type="int">
+  Value: `6` - Gold I
+</ResponseField>
+
+<ResponseField name="GOLD_2" type="int">
+  Value: `7` - Gold II
+</ResponseField>
+
+<ResponseField name="GOLD_3" type="int">
+  Value: `8` - Gold III
+</ResponseField>
+
+<ResponseField name="PLATINUM_1" type="int">
+  Value: `9` - Platinum I
+</ResponseField>
+
+<ResponseField name="PLATINUM_2" type="int">
+  Value: `10` - Platinum II
+</ResponseField>
+
+<ResponseField name="PLATINUM_3" type="int">
+  Value: `11` - Platinum III
+</ResponseField>
+
+<ResponseField name="DIAMOND_1" type="int">
+  Value: `12` - Diamond I
+</ResponseField>
+
+<ResponseField name="DIAMOND_2" type="int">
+  Value: `13` - Diamond II
+</ResponseField>
+
+<ResponseField name="DIAMOND_3" type="int">
+  Value: `14` - Diamond III
+</ResponseField>
+
+<ResponseField name="ELITE" type="int">
+  Value: `15` - Elite
+</ResponseField>
+
+<ResponseField name="CHAMPION" type="int">
+  Value: `16` - Champion
+</ResponseField>
+
+<ResponseField name="UNREAL" type="int">
+  Value: `17` - Unreal
+</ResponseField>
+
+## StatsCollectionType
+
+Types of collectible stats.
+
+### Members
+
+<ResponseField name="FISH" type="str">
+  Value: `"collection_fish"`
+  
+  Fish collection statistics.
+</ResponseField>
+
+<ResponseField name="CHARACTER" type="str">
+  Value: `"collection_character"`
+  
+  Character collection statistics.
+</ResponseField>
+
+## V2Input
+
+Input method types for V2 endpoints.
+
+### Members
+
+<ResponseField name="KEYBOARDANDMOUSE" type="str">
+  Value: `"keyboardmouse"`
+</ResponseField>
+
+<ResponseField name="GAMEPAD" type="str">
+  Value: `"gamepad"`
+</ResponseField>
+
+<ResponseField name="TOUCH" type="str">
+  Value: `"touch"`
+</ResponseField>
+
+## UserSearchPlatform
+
+Platforms for user search operations.
+
+### Members
+
+<ResponseField name="EPIC_GAMES" type="str">
+  Value: `"epic"`
+</ResponseField>
+
+<ResponseField name="PLAYSTATION" type="str">
+  Value: `"psn"`
+</ResponseField>
+
+<ResponseField name="XBOX" type="str">
+  Value: `"xbl"`
+</ResponseField>
+
+<ResponseField name="STEAM" type="str">
+  Value: `"steam"`
+</ResponseField>
+
+## UserSearchMatchType
+
+Match types for user searches.
+
+### Members
+
+<ResponseField name="EXACT" type="str">
+  Value: `"exact"`
+  
+  Exact username match.
+</ResponseField>
+
+<ResponseField name="PREFIX" type="str">
+  Value: `"prefix"`
+  
+  Username prefix match.
+</ResponseField>
+
+## DefaultCharactersChapter1
+
+Default character IDs from Fortnite Chapter 1.
+
+### Members
+
+- `CID_001_Athena_Commando_F_Default` - Value: `1`
+- `CID_002_Athena_Commando_F_Default` - Value: `2`
+- `CID_003_Athena_Commando_F_Default` - Value: `3`
+- `CID_004_Athena_Commando_F_Default` - Value: `4`
+- `CID_005_Athena_Commando_M_Default` - Value: `5`
+- `CID_006_Athena_Commando_M_Default` - Value: `6`
+- `CID_007_Athena_Commando_M_Default` - Value: `7`
+- `CID_008_Athena_Commando_M_Default` - Value: `8`
+
+## DefaultCharactersChapter2
+
+Default character IDs from Fortnite Chapter 2.
+
+### Members
+
+- `CID_556_Athena_Commando_F_RebirthDefaultA` - Value: `1`
+- `CID_557_Athena_Commando_F_RebirthDefaultB` - Value: `2`
+- `CID_558_Athena_Commando_F_RebirthDefaultC` - Value: `3`
+- `CID_559_Athena_Commando_F_RebirthDefaultD` - Value: `4`
+- `CID_560_Athena_Commando_M_RebirthDefaultA` - Value: `5`
+- `CID_561_Athena_Commando_M_RebirthDefaultB` - Value: `6`
+- `CID_562_Athena_Commando_M_RebirthDefaultC` - Value: `7`
+- `CID_563_Athena_Commando_M_RebirthDefaultD` - Value: `8`
+
+## DefaultCharactersChapter3
+
+Default character IDs from Fortnite Chapter 3.
+
+### Members
+
+- `CID_A_272_Athena_Commando_F_Prime` - Value: `1`
+- `CID_A_273_Athena_Commando_F_Prime_B` - Value: `2`
+- `CID_A_274_Athena_Commando_F_Prime_C` - Value: `3`
+- `CID_A_275_Athena_Commando_F_Prime_D` - Value: `4`
+- `CID_A_276_Athena_Commando_F_Prime_E` - Value: `5`
+- `CID_A_277_Athena_Commando_F_Prime_F` - Value: `6`
+- `CID_A_278_Athena_Commando_F_Prime_G` - Value: `7`
+- `CID_A_279_Athena_Commando_M_Prime` - Value: `8`
+- `CID_A_280_Athena_Commando_M_Prime_B` - Value: `9`
+- `CID_A_281_Athena_Commando_M_Prime_C` - Value: `10`
+- `CID_A_282_Athena_Commando_M_Prime_D` - Value: `11`
+- `CID_A_283_Athena_Commando_M_Prime_E` - Value: `12`
+- `CID_A_284_Athena_Commando_M_Prime_F` - Value: `13`
+- `CID_A_285_Athena_Commando_M_Prime_G` - Value: `14`
+
+## Country
+
+Country identifiers for leaderboards and region-specific features.
+
+### Members
+
+- `ARGENTINA` - Value: `"argentina"`
+- `AUSTRALIA` - Value: `"australia"`
+- `BELARUS` - Value: `"belarus"`
+- `BELGIUM` - Value: `"belgium"`
+- `BRAZIL` - Value: `"brazil"`
+- `CANADA` - Value: `"canada"`
+- `COLOMBIA` - Value: `"colombia"`
+- `CZECHREPUBLIC` - Value: `"czechrepublic"`
+- `DENMARK` - Value: `"denmark"`
+- `EGYPT` - Value: `"egypt"`
+- `ENGLAND` - Value: `"england"`
+- `FRANCE` - Value: `"france"`
+- `GERMANY` - Value: `"germany"`
+- `GLOBAL` - Value: `"global"`
+- `ICELAND` - Value: `"iceland"`
+- `IRELAND` - Value: `"ireland"`
+- `ITALY` - Value: `"italy"`
+- `JAPAN` - Value: `"japan"`
+- `LATVIA` - Value: `"latvia"`
+- `MEXICO` - Value: `"mexico"`
+- `NETHERLANDS` - Value: `"netherlands"`
+- `NEWZEALAND` - Value: `"newzealand"`
+- `NIGERIA` - Value: `"nigeria"`
+- `NORWAY` - Value: `"norway"`
+- `POLAND` - Value: `"poland"`
+- `PORTUGAL` - Value: `"portugal"`
+- `RUSSIA` - Value: `"russia"`
+- `SAUDIARABIA` - Value: `"saudiarabia"`
+- `SCOTLAND` - Value: `"scotland"`
+- `SOUTHKOREA` - Value: `"southkorea"`
+- `SPAIN` - Value: `"spain"`
+- `SWEDEN` - Value: `"sweden"`
+- `SWITZERLAND` - Value: `"switzerland"`
+- `TURKEY` - Value: `"turkey"`
+- `UKRAINE` - Value: `"ukraine"`
+- `UNITEDKINGDOM` - Value: `"unitedkingdom"`
+- `UNITEDSTATES` - Value: `"unitedstates"`
+- `URUGUAY` - Value: `"uruguay"`
+- `WALES` - Value: `"wales"`

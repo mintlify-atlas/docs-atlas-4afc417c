@@ -1,0 +1,68 @@
+---
+title: CompetitiveRank
+description: API reference for the CompetitiveRank class
+---
+
+## CompetitiveRank
+
+Represents a specific competitive rank type.
+
+### Properties
+
+#### ranking_type
+
+**Type:** `RankingType`
+
+The type of rank.
+
+#### last_updated
+
+**Type:** `datetime.datetime`
+
+The last time the stats were updated.
+
+#### current_division
+
+**Type:** `Rank`
+
+The current/final rank of the player in that season. Returns `Rank(None)` if the player has never played ranked.
+
+#### highest_division
+
+**Type:** `Rank`
+
+The highest rank of the player in that season. Returns `Rank(None)` if the player has never played ranked.
+
+#### promotion_progress
+
+**Type:** `float`
+
+The player's progress through their current/final rank as a decimal (0.0 to 1.0).
+
+#### unreal_placement
+
+**Type:** `Optional[int]`
+
+Their placement in Unreal rank. Returns `None` if they're not in Unreal.
+
+### Methods
+
+#### __str__
+
+```python
+__str__() -> str
+```
+
+Returns a string representation showing the current division name and promotion progress as a percentage.
+
+**Example:**
+
+```python
+user = await client.fetch_user('Ninja')
+rank = await client.fetch_br_rank(user.id)
+print(rank)  # e.g., "Diamond 50%"
+print(f"Current division: {rank.current_division.name}")
+print(f"Progress: {int(rank.promotion_progress * 100)}%")
+if rank.unreal_placement:
+    print(f"Unreal placement: #{rank.unreal_placement}")
+```

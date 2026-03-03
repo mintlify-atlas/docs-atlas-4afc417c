@@ -1,0 +1,85 @@
+---
+title: Playlist
+description: API reference for the Playlist class
+---
+
+## Playlist
+
+Represents a Fortnite playlist.
+
+### Properties
+
+#### image_url
+
+**Type:** `str`
+
+Image URL for the playlist.
+
+#### internal_name
+
+**Type:** `str`
+
+The internal name of the playlist.
+
+#### type
+
+**Type:** `str`
+
+The type of this playlist object.
+
+#### special_border
+
+**Type:** `Optional[str]`
+
+Special border of the playlist. Will be `None` if no special border is found for this playlist.
+
+#### violator
+
+**Type:** `Optional[str]`
+
+The violator displayed for this playlist. This is the little red tag displaying short text on some of the playlists in-game. Will be `None` if no violator is found for this playlist.
+
+#### display_subname
+
+**Type:** `Optional[str]`
+
+The display subname of this playlist. Will be `None` if no display subname is found for this playlist.
+
+#### description
+
+**Type:** `Optional[str]`
+
+The description of this playlist. Will be `None` if no description is found for this playlist.
+
+### Methods
+
+#### __eq__
+
+```python
+__eq__(other) -> bool
+```
+
+Checks if two playlists are equal by comparing their internal names.
+
+#### __ne__
+
+```python
+__ne__(other) -> bool
+```
+
+Checks if two playlists are not equal.
+
+### Example
+
+```python
+playlists = await client.fetch_active_playlists()
+for playlist in playlists:
+    print(f"Playlist: {playlist.internal_name}")
+    print(f"Type: {playlist.type}")
+    print(f"Image: {playlist.image_url}")
+    if playlist.description:
+        print(f"Description: {playlist.description}")
+    if playlist.violator:
+        print(f"Tag: {playlist.violator}")
+    print()
+```

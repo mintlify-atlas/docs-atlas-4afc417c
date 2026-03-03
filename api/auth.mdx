@@ -1,0 +1,373 @@
+---
+title: Auth
+description: Base authentication class for rebootpy
+---
+
+The base `Auth` class that all authentication methods inherit from. This class provides core authentication functionality and token management.
+
+## Class Signature
+
+```python
+class Auth:
+    def __init__(self, **kwargs: Any) -> None
+```
+
+## Parameters
+
+<ParamField path="ios_token" type="str" optional>
+  The main Fortnite token to use with authentication. You should generally not need to set this manually.
+  
+  Default: `M2Y2OWU1NmM3NjQ5NDkyYzhjYzI5ZjFhZjA4YThhMTI6YjUxZWU5Y2IxMjIzNGY1MGE2OWVmYTY3ZWY1MzgxMmU=`
+</ParamField>
+
+<ParamField path="device_id" type="str" optional>
+  A 32 char hex string representing your device. Auto-generated if not provided.
+</ParamField>
+
+<ParamField path="token_type" type="str" optional>
+  The access token type. It's recommended you only change this if you know what you're doing as certain functions/API calls may start causing errors.
+  
+  Default: `eg1`
+</ParamField>
+
+## Properties
+
+<ResponseField name="authorization" type="str">
+  The Authorization header for use with Fortnite endpoints. Alias for `ios_authorization`.
+</ResponseField>
+
+<ResponseField name="ios_authorization" type="str">
+  Returns `bearer {ios_access_token}` for iOS authentication.
+</ResponseField>
+
+<ResponseField name="chat_authorization" type="str">
+  Returns `bearer {chat_access_token}` for chat authentication.
+</ResponseField>
+
+<ResponseField name="eas_authorization" type="str">
+  Returns `bearer {eas_access_token}` for EAS authentication.
+</ResponseField>
+
+<ResponseField name="eos_authorization" type="str">
+  Returns `bearer {eos_access_token}` for EOS authentication.
+</ResponseField>
+
+<ResponseField name="identifier" type="str">
+  Returns the authentication identifier. Must be implemented by subclasses.
+</ResponseField>
+
+## Methods
+
+### initialize
+
+```python
+def initialize(client: 'BasicClient') -> None
+```
+
+Initializes the auth instance with a client.
+
+<ParamField path="client" type="BasicClient" required>
+  The client instance to initialize with.
+</ParamField>
+
+### authenticate
+
+```python
+async def authenticate(**kwargs) -> dict
+```
+
+Authenticates the client. Must be implemented by subclasses.
+
+**Returns:** Authentication data dictionary
+
+### reauthenticate
+
+```python
+async def reauthenticate(priority: int = 0) -> dict
+```
+
+Re-authenticates the client. Must be implemented by subclasses.
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+### eula_check_needed
+
+```python
+def eula_check_needed() -> bool
+```
+
+Returns whether EULA check is needed.
+
+**Returns:** `True` by default
+
+### get_eula_version
+
+```python
+async def get_eula_version(**kwargs: Any) -> int
+```
+
+Gets the current EULA version.
+
+**Returns:** The EULA version number
+
+### accept_eula
+
+```python
+async def accept_eula(**kwargs: Any) -> None
+```
+
+Accepts the EULA and grants Fortnite access.
+
+### get_exchange_code
+
+```python
+async def get_exchange_code(*, auth='IOS_ACCESS_TOKEN', priority: int = 0) -> str
+```
+
+Gets an exchange code for authentication.
+
+<ParamField path="auth" type="str" default="IOS_ACCESS_TOKEN">
+  The authorization type to use.
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** The exchange code
+
+### exchange_code_for_session
+
+```python
+async def exchange_code_for_session(token: str, code: str, *, priority: int = 0) -> dict
+```
+
+Exchanges an authorization code for a session.
+
+<ParamField path="token" type="str" required>
+  The token to use for authentication.
+</ParamField>
+
+<ParamField path="code" type="str" required>
+  The exchange code.
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** Session data dictionary
+
+### grant_refresh_token
+
+```python
+async def grant_refresh_token(refresh_token: str, auth_token: str, *, priority: int = 0) -> dict
+```
+
+Grants a new access token using a refresh token.
+
+<ParamField path="refresh_token" type="str" required>
+  The refresh token.
+</ParamField>
+
+<ParamField path="auth_token" type="str" required>
+  The authorization token.
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** New token data
+
+### grant_chat_refresh_token
+
+```python
+async def grant_chat_refresh_token(refresh_token: str, priority: int = 0) -> dict
+```
+
+Grants a new chat access token using a refresh token.
+
+<ParamField path="refresh_token" type="str" required>
+  The chat refresh token.
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** New chat token data
+
+### grant_eas_refresh_token
+
+```python
+async def grant_eas_refresh_token(refresh_token: str, priority: int = 0) -> dict
+```
+
+Grants a new EAS access token using a refresh token.
+
+<ParamField path="refresh_token" type="str" required>
+  The EAS refresh token.
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** New EAS token data
+
+### grant_eos_external_auth_token
+
+```python
+async def grant_eos_external_auth_token(external_auth_token: str, priority: int = 0) -> dict
+```
+
+Grants an EOS access token using an external auth token.
+
+<ParamField path="external_auth_token" type="str" required>
+  The external auth token (typically the iOS access token).
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+**Returns:** EOS token data (only when `access_token_type` is `eg1`)
+
+### get_ios_client_credentials
+
+```python
+async def get_ios_client_credentials()
+```
+
+Gets iOS client credentials.
+
+**Returns:** Client credentials data
+
+### kill_token
+
+```python
+async def kill_token(token: str) -> None
+```
+
+Kills/invalidates a specific token.
+
+<ParamField path="token" type="str" required>
+  The token to kill.
+</ParamField>
+
+### kill_other_sessions
+
+```python
+async def kill_other_sessions(auth: str = 'IOS_ACCESS_TOKEN', *, priority: int = 0) -> None
+```
+
+Kills all other active sessions.
+
+<ParamField path="auth" type="str" default="IOS_ACCESS_TOKEN">
+  The authorization type to use.
+</ParamField>
+
+<ParamField path="priority" type="int" default="0">
+  The request priority.
+</ParamField>
+
+### schedule_token_refresh
+
+```python
+async def schedule_token_refresh() -> None
+```
+
+Schedules the next token refresh based on token expiration times.
+
+### run_refresh_loop
+
+```python
+async def run_refresh_loop() -> None
+```
+
+Runs the continuous token refresh loop.
+
+### do_refresh
+
+```python
+async def do_refresh() -> None
+```
+
+Performs a token refresh operation.
+
+### run_refresh
+
+```python
+async def run_refresh() -> None
+```
+
+Triggers a token refresh and waits for completion.
+
+### refreshing
+
+```python
+def refreshing() -> bool
+```
+
+Checks if a token refresh is currently in progress.
+
+**Returns:** `True` if refreshing, `False` otherwise
+
+### refresh_loop_running
+
+```python
+def refresh_loop_running()
+```
+
+Checks if the refresh loop is currently running.
+
+**Returns:** `True` if running, `False` otherwise
+
+### fetch_device_auths
+
+```python
+async def fetch_device_auths() -> List[dict]
+```
+
+Fetches all device authentications for the account.
+
+**Returns:** List of device auth dictionaries containing:
+- `deviceId`: The device ID
+- `accountId`: The account ID
+- `userAgent`: The user agent string
+- `created`: Creation information (location, IP, datetime)
+- `lastAccess`: Last access information (location, IP, datetime)
+
+### generate_device_auth
+
+```python
+async def generate_device_auth() -> dict
+```
+
+Generates a new device authentication.
+
+**Returns:** Device auth dictionary containing:
+- `deviceId`: The generated device ID
+- `accountId`: The account ID
+- `secret`: The device secret (32 characters)
+- `userAgent`: The user agent string
+- `created`: Creation information
+
+### delete_device_auth
+
+```python
+async def delete_device_auth(device_id: str) -> None
+```
+
+Deletes a device authentication.
+
+<ParamField path="device_id" type="str" required>
+  The device ID to delete.
+</ParamField>
+
+## Source
+
+View source: [rebootpy/auth.py:52](https://github.com/xMistt/rebootpy/blob/main/rebootpy/auth.py#L52)

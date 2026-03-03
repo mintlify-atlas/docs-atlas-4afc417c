@@ -1,0 +1,184 @@
+---
+title: Build a basic bot
+description: Step-by-step guide to creating your first rebootpy bot
+---
+
+This guide will walk you through creating a basic Fortnite bot using rebootpy.
+
+<Steps>
+  <Step title="Install rebootpy">
+    First, install rebootpy using pip:
+
+    ```bash
+    pip install rebootpy
+    ```
+  </Step>
+
+  <Step title="Create your bot file">
+    Create a new Python file (e.g., `bot.py`) and import the necessary modules:
+
+    ```python
+    import rebootpy
+    from rebootpy.ext import commands
+    ```
+  </Step>
+
+  <Step title="Initialize the bot">
+    Create a bot instance with a command prefix:
+
+    ```python
+    bot = commands.Bot(
+        command_prefix='!',
+        auth=rebootpy.AuthorizationCodeAuth()
+    )
+    ```
+
+    The command prefix (`!` in this example) is what users will type before commands.
+  </Step>
+
+  <Step title="Add event handlers">
+    Event handlers let your bot respond to events. Add a ready event to know when your bot is online:
+
+    ```python
+    @bot.event
+    async def event_ready():
+        print(f'Bot ready as {bot.user.display_name} ({bot.user.id})')
+    ```
+
+    Add a friend request handler to automatically accept friend requests:
+
+    ```python
+    @bot.event
+    async def event_friend_request(request):
+        await request.accept()
+        print(f'Accepted friend request from {request.display_name}')
+    ```
+  </Step>
+
+  <Step title="Add commands">
+    Commands allow users to interact with your bot:
+
+    ```python
+    @bot.command()
+    async def hello(ctx):
+        await ctx.send('Hello!')
+
+    @bot.command()
+    async def party(ctx):
+        await ctx.send(f'Party size: {bot.party.member_count}')
+    ```
+  </Step>
+
+  <Step title="Run the bot">
+    Finally, start the bot:
+
+    ```python
+    bot.run()
+    ```
+
+    When you run this script, you'll be prompted to get an authorization code from Epic Games.
+  </Step>
+</Steps>
+
+## Complete example
+
+Here's the complete bot code:
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AuthorizationCodeAuth()
+)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name} ({bot.user.id})')
+
+@bot.event
+async def event_friend_request(request):
+    await request.accept()
+    print(f'Accepted friend request from {request.display_name}')
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello!')
+
+@bot.command()
+async def party(ctx):
+    await ctx.send(f'Party size: {bot.party.member_count}')
+
+bot.run()
+```
+
+## Using device auth (recommended)
+
+For a more persistent bot that doesn't require manual authorization each time, use `AdvancedAuth`:
+
+```python
+import rebootpy
+import json
+import os
+from rebootpy.ext import commands
+
+filename = 'device_auths.json'
+
+def get_device_auth_details():
+    if os.path.isfile(filename):
+        with open(filename, 'r') as fp:
+            return json.load(fp)
+    return {}
+
+def store_device_auth_details(details):
+    with open(filename, 'w') as fp:
+        json.dump(details, fp)
+
+device_auth_details = get_device_auth_details()
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.AdvancedAuth(
+        prompt_device_code=True,
+        open_link_in_browser=True,
+        **device_auth_details
+    )
+)
+
+@bot.event
+async def event_device_auth_generate(details):
+    store_device_auth_details(details)
+
+@bot.event
+async def event_ready():
+    print(f'Bot ready as {bot.user.display_name} ({bot.user.id})')
+
+@bot.event
+async def event_friend_request(request):
+    await request.accept()
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hello!')
+
+bot.run()
+```
+
+This example will automatically save device auth credentials to a JSON file after the first run, so you won't need to re-authenticate.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Commands extension" icon="terminal" href="/guides/commands-extension">
+    Learn more about creating commands and using the commands framework
+  </Card>
+  <Card title="Party management" icon="users" href="/guides/party-management">
+    Manage your bot's party, members, and settings
+  </Card>
+  <Card title="Event handling" icon="bolt" href="/concepts/events">
+    Understand all available events and how to use them
+  </Card>
+  <Card title="Error handling" icon="shield-exclamation" href="/guides/error-handling">
+    Handle errors gracefully in your bot
+  </Card>
+</CardGroup>

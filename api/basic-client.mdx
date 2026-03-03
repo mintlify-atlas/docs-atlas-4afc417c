@@ -1,0 +1,817 @@
+---
+title: "BasicClient"
+description: "Lightweight client for making simple requests without party or XMPP support"
+---
+
+## Overview
+
+The `BasicClient` class is a stripped-down version of `Client` designed for simple operations like user lookups and stats fetching. Use this when you don't need party or friend features.
+
+<Note>
+  `BasicClient` does **not** support:
+  - Parties (except `fetch_party()`)
+  - Friends
+  - XMPP messaging and most events
+</Note>
+
+## Constructor
+
+```python
+BasicClient(
+    auth: Auth,
+    **kwargs
+)
+```
+
+<ParamField path="auth" type="Auth" required>
+  The authentication method to use. See [Authentication](/authentication) for available methods.
+</ParamField>
+
+<ParamField path="http_connector" type="aiohttp.BaseConnector">
+  The connector to use for HTTP connection pooling.
+</ParamField>
+
+<ParamField path="http_retry_config" type="HTTPRetryConfig">
+  Configuration for HTTP retries.
+</ParamField>
+
+<ParamField path="build" type="str" default="++Fortnite+Release-38.10-CL-47888945">
+  The Fortnite build version string.
+</ParamField>
+
+<ParamField path="os" type="str" default="Windows/10.0.19045.1.768.64bit">
+  The OS version string for the user agent.
+</ParamField>
+
+<ParamField path="cache_users" type="bool" default="True">
+  Whether to cache User objects. Disable for programs with many users to reduce memory usage.
+</ParamField>
+
+<ParamField path="kill_other_sessions" type="bool" default="True">
+  Whether to kill other existing sessions/tokens on login.
+</ParamField>
+
+## Attributes
+
+<ResponseField name="user" type="ClientUser">
+  The user the client is logged in as.
+</ResponseField>
+
+## Supported Events
+
+<ResponseField name="event_ready">
+  Dispatched when the client is ready.
+</ResponseField>
+
+<ResponseField name="event_before_start">
+  Dispatched before the client starts.
+</ResponseField>
+
+<ResponseField name="event_before_close">
+  Dispatched before the client closes.
+</ResponseField>
+
+<ResponseField name="event_restart">
+  Dispatched when the client restarts.
+</ResponseField>
+
+<ResponseField name="event_device_auth_generate">
+  Dispatched when device auth is generated.
+</ResponseField>
+
+<ResponseField name="event_auth_refresh">
+  Dispatched when authentication is refreshed.
+</ResponseField>
+
+## Methods
+
+### run
+
+```python
+client.run()
+```
+
+Starts the event loop and runs the client. This is a blocking method and should be the last function called.
+
+**Raises:**
+- `AuthException` - Invalid credentials or authentication failure
+- `HTTPException` - Request error during login
+
+---
+
+### start
+
+```python
+await client.start(dispatch_ready: bool = True)
+```
+
+Starts the client and logs in. Can be used as a coroutine or async context manager.
+
+<ParamField path="dispatch_ready" type="bool" default="True">
+  Whether to dispatch the `ready` event when ready.
+</ParamField>
+
+**Returns:** `StartContext` - Can be used as async context manager or awaited.
+
+**Raises:**
+- `AuthException` - Invalid credentials or authentication failure
+- `HTTPException` - Request error during login
+
+---
+
+### close
+
+```python
+await client.close(
+    close_http: bool = True,
+    dispatch_close: bool = True
+)
+```
+
+Logs out and closes running services.
+
+<ParamField path="close_http" type="bool" default="True">
+  Whether to close the HTTP client session.
+</ParamField>
+
+<ParamField path="dispatch_close" type="bool" default="True">
+  Whether to dispatch close events.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - Error during logout
+
+---
+
+### is_closed
+
+```python
+client.is_closed() -> bool
+```
+
+Checks if the client is closed.
+
+<ResponseField name="return" type="bool">
+  `True` if closed, else `False`.
+</ResponseField>
+
+---
+
+### is_ready
+
+```python
+client.is_ready() -> bool
+```
+
+Checks if the client's internal state is ready.
+
+<ResponseField name="return" type="bool">
+  `True` if ready, else `False`.
+</ResponseField>
+
+---
+
+### wait_until_ready
+
+```python
+await client.wait_until_ready()
+```
+
+Waits until the client's internal state is ready.
+
+---
+
+### wait_until_closed
+
+```python
+await client.wait_until_closed()
+```
+
+Waits until the client is fully closed.
+
+---
+
+### restart
+
+```python
+await client.restart()
+```
+
+Restarts the client completely. All events received during restart are dispatched when finished.
+
+**Raises:**
+- `AuthException` - Invalid credentials or authentication failure
+- `HTTPException` - Request error during login
+
+---
+
+## User Methods
+
+### fetch_user
+
+```python
+await client.fetch_user(
+    user: str,
+    cache: bool = False,
+    raw: bool = False
+) -> Optional[User]
+```
+
+Fetches a user by ID or display name.
+
+<ParamField path="user" type="str" required>
+  User ID or display name.
+</ParamField>
+
+<ParamField path="cache" type="bool" default="False">
+  Whether to check cache before making API request.
+</ParamField>
+
+<ParamField path="raw" type="bool" default="False">
+  Whether to return raw API data instead of User object.
+</ParamField>
+
+<ResponseField name="return" type="Optional[User]">
+  The user if found, else `None`.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_users
+
+```python
+await client.fetch_users(
+    users: Iterable[str],
+    cache: bool = False,
+    raw: bool = False
+) -> List[User]
+```
+
+Fetches multiple users by IDs or display names.
+
+<ParamField path="users" type="Iterable[str]" required>
+  Iterable of user IDs or display names.
+</ParamField>
+
+<ParamField path="cache" type="bool" default="False">
+  Whether to check cache before making API requests.
+</ParamField>
+
+<ParamField path="raw" type="bool" default="False">
+  Whether to return raw API data.
+</ParamField>
+
+<ResponseField name="return" type="List[User]">
+  List of found users. Missing users are not included.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_user_by_display_name
+
+```python
+await client.fetch_user_by_display_name(
+    display_name: str,
+    cache: bool = False,
+    raw: bool = False
+) -> Optional[User]
+```
+
+Fetches a user by display name.
+
+<ParamField path="display_name" type="str" required>
+  The user's display name.
+</ParamField>
+
+<ParamField path="cache" type="bool" default="False">
+  Whether to check cache first.
+</ParamField>
+
+<ParamField path="raw" type="bool" default="False">
+  Whether to return raw API data.
+</ParamField>
+
+<ResponseField name="return" type="Optional[User]">
+  The user if found, else `None`.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_users_by_display_name
+
+```python
+await client.fetch_users_by_display_name(
+    display_name: str,
+    raw: bool = False
+) -> List[User]
+```
+
+Fetches all users (including external platform accounts) matching a display name.
+
+<ParamField path="display_name" type="str" required>
+  The display name to search for.
+</ParamField>
+
+<ParamField path="raw" type="bool" default="False">
+  Whether to return raw API data.
+</ParamField>
+
+<ResponseField name="return" type="List[User]">
+  List of all matching users.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### search_users
+
+```python
+await client.search_users(
+    prefix: str,
+    platform: UserSearchPlatform
+) -> List[UserSearchEntry]
+```
+
+Searches for users by prefix, returning up to 100 matches.
+
+<ParamField path="prefix" type="str" required>
+  The search prefix (case insensitive).
+</ParamField>
+
+<ParamField path="platform" type="UserSearchPlatform" required>
+  The platform to search on.
+</ParamField>
+
+<ResponseField name="return" type="List[UserSearchEntry]">
+  Ordered list of matching users.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### get_user
+
+```python
+client.get_user(user_id: str) -> Optional[User]
+```
+
+Gets a user from cache by ID.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+<ResponseField name="return" type="Optional[User]">
+  The user if cached, else `None`.
+</ResponseField>
+
+---
+
+## Stats Methods
+
+### fetch_br_stats
+
+```python
+await client.fetch_br_stats(
+    user_id: str,
+    start_time: Optional[DatetimeOrTimestamp] = None,
+    end_time: Optional[DatetimeOrTimestamp] = None
+) -> StatsV2
+```
+
+Fetches Battle Royale stats for a user.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+<ParamField path="start_time" type="Optional[Union[int, datetime]]">
+  UTC start time (epoch seconds, datetime, or Season.start_timestamp).
+</ParamField>
+
+<ParamField path="end_time" type="Optional[Union[int, datetime]]">
+  UTC end time (epoch seconds, datetime, or Season.end_timestamp).
+</ParamField>
+
+<ResponseField name="return" type="StatsV2">
+  Stats object for the user.
+</ResponseField>
+
+**Raises:**
+- `Forbidden` - User has hidden stats
+- `HTTPException` - Request error
+
+---
+
+### fetch_ranked_stats
+
+```python
+await client.fetch_ranked_stats(
+    user_id: str,
+    season: Optional[Season] = None
+) -> List[CompetitiveRank]
+```
+
+Fetches ranked stats for a user.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+<ParamField path="season" type="Optional[Season]">
+  The season to get ranks for. Defaults to current season.
+</ParamField>
+
+<ResponseField name="return" type="List[CompetitiveRank]">
+  List of all ranks for the season.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_multiple_br_stats
+
+```python
+await client.fetch_multiple_br_stats(
+    user_ids: List[str],
+    stats: List[str],
+    start_time: Optional[DatetimeOrTimestamp] = None,
+    end_time: Optional[DatetimeOrTimestamp] = None
+) -> Dict[str, Optional[StatsV2]]
+```
+
+Fetches specific Battle Royale stats for multiple users.
+
+<ParamField path="user_ids" type="List[str]" required>
+  List of user IDs.
+</ParamField>
+
+<ParamField path="stats" type="List[str]" required>
+  List of stats to fetch. Use `StatsV2.create_stat()` to create stat strings.
+</ParamField>
+
+<ParamField path="start_time" type="Optional[Union[int, datetime]]">
+  UTC start time.
+</ParamField>
+
+<ParamField path="end_time" type="Optional[Union[int, datetime]]">
+  UTC end time.
+</ParamField>
+
+<ResponseField name="return" type="Dict[str, Optional[StatsV2]]">
+  Mapping of user IDs to their stats. Users with private stats are excluded.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_battlepass_level
+
+```python
+await client.fetch_battlepass_level(
+    user_id: str,
+    season: Season,
+    start_time: Optional[DatetimeOrTimestamp] = None,
+    end_time: Optional[DatetimeOrTimestamp] = None
+) -> float
+```
+
+Fetches a user's Battle Pass level.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+<ParamField path="season" type="Season" required>
+  The season to get the level for.
+</ParamField>
+
+<ParamField path="start_time" type="Optional[Union[int, datetime]]">
+  UTC start time.
+</ParamField>
+
+<ParamField path="end_time" type="Optional[Union[int, datetime]]">
+  UTC end time.
+</ParamField>
+
+<ResponseField name="return" type="float">
+  Battle Pass level with decimal progress (e.g., 208.63 = Level 208, 63% to 209).
+</ResponseField>
+
+**Raises:**
+- `Forbidden` - User has private career board
+- `HTTPException` - Request error
+
+---
+
+## Friend Management
+
+### add_friend
+
+```python
+await client.add_friend(user_id: str)
+```
+
+Sends a friend request to a user.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+**Raises:**
+- `NotFound` - User does not exist
+- `DuplicateFriendship` - Already friends
+- `FriendshipRequestAlreadySent` - Request already pending
+- `MaxFriendshipsExceeded` - Client hit friendship limit (usually 1000)
+- `InviteeMaxFriendshipsExceeded` - User hit friendship limit
+- `InviteeMaxFriendshipRequestsExceeded` - User hit request limit (usually 700)
+- `Forbidden` - Cannot send request due to user settings
+- `HTTPException` - Request error
+
+---
+
+### remove_or_decline_friend
+
+```python
+await client.remove_or_decline_friend(user_id: str)
+```
+
+Removes a friend or declines a friend request.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### block_user
+
+```python
+await client.block_user(user_id: str)
+```
+
+Blocks a user.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### unblock_user
+
+```python
+await client.unblock_user(user_id: str)
+```
+
+Unblocks a user.
+
+<ParamField path="user_id" type="str" required>
+  The user's ID.
+</ParamField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_blocklist
+
+```python
+await client.fetch_blocklist() -> List[str]
+```
+
+Fetches the client's blocklist.
+
+<ResponseField name="return" type="List[str]">
+  List of blocked user IDs.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+## Event Handling
+
+### event
+
+```python
+@client.event
+async def event_ready():
+    print('Client is ready!')
+
+# Or with custom name:
+@client.event('ready')
+async def my_ready_handler():
+    print('Client is ready!')
+```
+
+Decorator to register an event handler.
+
+**Raises:**
+- `TypeError` - Decorated function is not a coroutine
+
+---
+
+### wait_for
+
+```python
+await client.wait_for(
+    event: str,
+    check: Optional[Callable] = None,
+    timeout: Optional[int] = None
+) -> Any
+```
+
+Waits for an event to be dispatched.
+
+<ParamField path="event" type="str" required>
+  Event name (without `event_` prefix).
+</ParamField>
+
+<ParamField path="check" type="Optional[Callable]">
+  Predicate function to filter events.
+</ParamField>
+
+<ParamField path="timeout" type="Optional[int]">
+  Timeout in seconds. `None` means wait forever.
+</ParamField>
+
+<ResponseField name="return" type="Any">
+  Event arguments (single value, tuple, or None).
+</ResponseField>
+
+**Raises:**
+- `asyncio.TimeoutError` - Timeout exceeded
+
+---
+
+### add_event_handler
+
+```python
+client.add_event_handler(event: str, coro: Callable)
+```
+
+Registers a coroutine as an event handler.
+
+<ParamField path="event" type="str" required>
+  Event name.
+</ParamField>
+
+<ParamField path="coro" type="Callable" required>
+  Coroutine function to handle the event.
+</ParamField>
+
+**Raises:**
+- `TypeError` - Function is not a coroutine
+
+---
+
+### remove_event_handler
+
+```python
+client.remove_event_handler(event: str, coro: Callable)
+```
+
+Removes a coroutine from event handlers.
+
+<ParamField path="event" type="str" required>
+  Event name.
+</ParamField>
+
+<ParamField path="coro" type="Callable" required>
+  Coroutine to remove.
+</ParamField>
+
+---
+
+## Store and News
+
+### fetch_item_shop
+
+```python
+await client.fetch_item_shop() -> Store
+```
+
+Fetches the current item shop.
+
+<ResponseField name="return" type="Store">
+  Object representing the item shop.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_br_news
+
+```python
+await client.fetch_br_news() -> List[BattleRoyaleNewsPost]
+```
+
+Fetches Battle Royale news posts.
+
+<ResponseField name="return" type="List[BattleRoyaleNewsPost]">
+  List of news posts.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_br_playlists
+
+```python
+await client.fetch_br_playlists() -> List[Playlist]
+```
+
+Fetches all registered playlists (including inactive ones).
+
+<ResponseField name="return" type="List[Playlist]">
+  List of all playlists.
+</ResponseField>
+
+**Raises:**
+- `HTTPException` - Request error
+
+---
+
+### fetch_party
+
+```python
+await client.fetch_party(party_id: str) -> Optional[Party]
+```
+
+Fetches a party by ID.
+
+<ParamField path="party_id" type="str" required>
+  The party's ID.
+</ParamField>
+
+<ResponseField name="return" type="Optional[Party]">
+  The party if found, else `None`.
+</ResponseField>
+
+**Raises:**
+- `Forbidden` - Not allowed to look up this party
+- `HTTPException` - Request error
+
+---
+
+## Example
+
+```python
+import rebootpy
+import asyncio
+
+client = rebootpy.BasicClient(
+    auth=rebootpy.DeviceAuth(
+        device_id='your_device_id',
+        account_id='your_account_id',
+        secret='your_secret'
+    )
+)
+
+@client.event
+async def event_ready():
+    print(f'Logged in as {client.user.display_name}')
+    
+    # Fetch user
+    user = await client.fetch_user('Ninja')
+    if user:
+        print(f'Found user: {user.display_name}')
+        
+        # Fetch stats
+        stats = await user.fetch_br_stats()
+        print(f'Stats: {stats.get_stats()}')
+    
+    await client.close()
+
+client.run()
+```

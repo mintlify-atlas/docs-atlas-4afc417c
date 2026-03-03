@@ -1,0 +1,421 @@
+---
+title: Commands Extension
+description: Overview of the commands extension for building command-based Fortnite bots
+---
+
+The `rebootpy.ext.commands` extension provides a framework for building command-based bots with features like command parsing, argument handling, checks, and cooldowns.
+
+## Installation
+
+The commands extension is included with rebootpy:
+
+```python
+from rebootpy.ext import commands
+```
+
+## Bot Class
+
+The `Bot` class extends `rebootpy.Client` with command functionality:
+
+```python
+import rebootpy
+from rebootpy.ext import commands
+
+bot = commands.Bot(
+    command_prefix='!',
+    auth=rebootpy.Auth(
+        email='email@example.com',
+        password='password'
+    )
+)
+```
+
+### Command Prefix
+
+The command prefix determines what triggers a command. It can be:
+
+**String prefix:**
+```python
+bot = commands.Bot(command_prefix='!', auth=auth)
+```
+
+**Multiple prefixes:**
+```python
+bot = commands.Bot(command_prefix=['!', '?', '.'], auth=auth)
+```
+
+**Dynamic prefix (callable):**
+```python
+def get_prefix(bot, message):
+    # Return different prefixes based on context
+    if message.party:
+        return '!'
+    return '?'
+
+bot = commands.Bot(command_prefix=get_prefix, auth=auth)
+```
+
+**Async dynamic prefix:**
+```python
+async def get_prefix(bot, message):
+    # Can use await for async operations
+    return '!'
+
+bot = commands.Bot(command_prefix=get_prefix, auth=auth)
+```
+
+## Creating Commands
+
+Use the `@bot.command()` decorator to create commands:
+
+```python
+@bot.command()
+async def hello(ctx):
+    """Says hello to the user."""
+    await ctx.send('Hello!')
+```
+
+### Command with Arguments
+
+```python
+@bot.command()
+async def echo(ctx, *, message: str):
+    """Repeats the message back."""
+    await ctx.send(message)
+
+@bot.command()
+async def add(ctx, a: int, b: int):
+    """Adds two numbers together."""
+    await ctx.send(f'{a} + {b} = {a + b}')
+```
+
+### Command Attributes
+
+```python
+@bot.command(
+    name='stats',           # Command name (default: function name)
+    aliases=['s', 'info'],  # Alternative command names
+    help='Shows player stats',
+    brief='Player statistics',
+    hidden=False,           # Show in help command
+    enabled=True,           # Command is enabled
+    ignore_extra=True       # Ignore extra arguments
+)
+async def stats(ctx):
+    await ctx.send('Stats command')
+```
+
+## Command Groups
+
+Group related commands together:
+
+```python
+@bot.group()
+async def party(ctx):
+    """Party management commands."""
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Use a subcommand: !party join, !party leave')
+
+@party.command()
+async def join(ctx):
+    """Join a party."""
+    await ctx.send('Joining party...')
+
+@party.command()
+async def leave(ctx):
+    """Leave the party."""
+    await ctx.send('Leaving party...')
+```
+
+Usage: `!party join`, `!party leave`
+
+### Invoke Without Command
+
+```python
+@bot.group(invoke_without_command=True)
+async def admin(ctx):
+    """Admin commands."""
+    # This runs even if a subcommand is called
+    await ctx.send('Admin action logged')
+```
+
+## Checks
+
+Restrict command usage with checks:
+
+```python
+@bot.command()
+@commands.check(lambda ctx: ctx.party is not None)
+async def party_only(ctx):
+    await ctx.send('This only works in parties!')
+```
+
+### Built-in Checks
+
+```python
+@bot.command()
+@commands.dm_only()
+async def secret(ctx):
+    """Only works in DMs."""
+    await ctx.send('This is a secret!')
+
+@bot.command()
+@commands.party_only()
+async def dance(ctx):
+    """Only works in parties."""
+    await ctx.send('Dancing!')
+
+@bot.command()
+@commands.is_owner()
+async def shutdown(ctx):
+    """Only the bot owner can use this."""
+    await ctx.send('Shutting down...')
+    await bot.close()
+```
+
+### Custom Checks
+
+```python
+def is_party_leader():
+    def predicate(ctx):
+        return ctx.party and ctx.author.leader
+    return commands.check(predicate)
+
+@bot.command()
+@is_party_leader()
+async def kick(ctx, member_name: str):
+    await ctx.send(f'Kicking {member_name}...')
+```
+
+### Check Any
+
+Allow command if any check passes:
+
+```python
+@bot.command()
+@commands.check_any(commands.is_owner(), is_party_leader())
+async def manage(ctx):
+    await ctx.send('Managing...')
+```
+
+## Global Checks
+
+Apply checks to all commands:
+
+```python
+@bot.check
+def globally_block_dms(ctx):
+    return ctx.party is not None
+
+# Or add directly:
+bot.add_check(globally_block_dms)
+```
+
+### Check Once
+
+Check that runs only once per command invocation:
+
+```python
+@bot.check_once
+def whitelist(ctx):
+    return ctx.author.id in my_whitelist
+```
+
+## Cooldowns
+
+Limit command usage rate:
+
+```python
+from rebootpy.ext.commands import BucketType
+
+@bot.command()
+@commands.cooldown(rate=1, per=60.0, type=BucketType.user)
+async def daily(ctx):
+    """Can only be used once per minute per user."""
+    await ctx.send('Here is your daily reward!')
+```
+
+### Bucket Types
+
+- `BucketType.default` - Global cooldown
+- `BucketType.user` - Per user
+- `BucketType.party` - Per party
+
+## Error Handling
+
+Handle command errors:
+
+```python
+@bot.event
+async def event_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send('Command not found!')
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f'Missing argument: {error.param.name}')
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f'On cooldown. Retry in {error.retry_after:.2f}s')
+    else:
+        print(f'Error: {error}')
+    return False  # Print error if not handled
+```
+
+### Local Error Handlers
+
+```python
+@bot.command()
+async def divide(ctx, a: int, b: int):
+    await ctx.send(f'{a} / {b} = {a / b}')
+
+@divide.error
+async def divide_error(ctx, error):
+    if isinstance(error, ZeroDivisionError):
+        await ctx.send('Cannot divide by zero!')
+```
+
+## Hooks
+
+Run code before/after commands:
+
+```python
+@bot.before_invoke
+async def before_any_command(ctx):
+    print(f'{ctx.author} used {ctx.command}')
+
+@bot.after_invoke
+async def after_any_command(ctx):
+    print(f'{ctx.command} completed')
+```
+
+### Command-specific Hooks
+
+```python
+@bot.command()
+async def greet(ctx):
+    await ctx.send('Hello!')
+
+@greet.before_invoke
+async def before_greet(ctx):
+    await ctx.send('Preparing greeting...')
+
+@greet.after_invoke
+async def after_greet(ctx):
+    await ctx.send('Greeting sent!')
+```
+
+## Extensions
+
+Load commands from external modules:
+
+**mybot.py:**
+```python
+bot = commands.Bot(command_prefix='!', auth=auth)
+
+# Load extension
+bot.load_extension('my_commands')
+
+bot.run()
+```
+
+**my_commands.py:**
+```python
+from rebootpy.ext import commands
+
+@commands.command()
+async def test(ctx):
+    await ctx.send('Extension command!')
+
+def extension_setup(bot):
+    bot.add_command(test)
+```
+
+### Extension Management
+
+```python
+# Load
+bot.load_extension('my_commands')
+
+# Unload
+bot.unload_extension('my_commands')
+
+# Reload
+bot.reload_extension('my_commands')
+
+# Get loaded extensions
+for name, module in bot.extensions.items():
+    print(f'{name}: {module}')
+```
+
+## Help Command
+
+The bot includes a default help command:
+
+```python
+# Default help command is FortniteHelpCommand
+bot = commands.Bot(command_prefix='!', auth=auth)
+
+# Disable help command
+bot = commands.Bot(command_prefix='!', auth=auth, help_command=None)
+
+# Custom help command
+from rebootpy.ext.commands import HelpCommand
+
+class MyHelp(HelpCommand):
+    async def send_bot_help(self, mapping):
+        await self.get_destination().send('Custom help!')
+
+bot.help_command = MyHelp()
+```
+
+## Owner Configuration
+
+```python
+# Single owner
+bot = commands.Bot(
+    command_prefix='!',
+    auth=auth,
+    owner_id='user_id_here'
+)
+
+# Multiple owners
+bot = commands.Bot(
+    command_prefix='!',
+    auth=auth,
+    owner_ids={'user_id_1', 'user_id_2'}
+)
+```
+
+## Case Insensitive Commands
+
+```python
+bot = commands.Bot(
+    command_prefix='!',
+    auth=auth,
+    case_insensitive=True
+)
+
+# Now !hello, !HELLO, !HeLLo all work
+@bot.command()
+async def hello(ctx):
+    await ctx.send('Hi!')
+```
+
+## Running the Bot
+
+```python
+bot = commands.Bot(command_prefix='!', auth=auth)
+
+@bot.event
+async def event_ready():
+    print(f'{bot.user.display_name} is ready!')
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send('Pong!')
+
+bot.run()
+```
+
+## Next Steps
+
+- [Cogs](/extensions/cogs) - Organize commands into cogs
+- [Context](/extensions/context) - Learn about the Context object

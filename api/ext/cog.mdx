@@ -1,0 +1,237 @@
+---
+title: "Cog"
+description: "Cog class and decorators for organizing commands"
+---
+
+## Cog
+
+```python
+class Cog(metaclass=CogMeta)
+```
+
+The base class that all cogs must inherit from.
+
+A cog is a collection of commands, listeners, and optional state to help group commands together.
+
+When inheriting from this class, the options shown in `CogMeta` are equally valid here.
+
+### Class Parameters
+
+<ParamField path="name" type="str">
+  The cog name. By default, it is the name of the class with no modification. Pass this as a keyword argument during class creation:
+  ```python
+  class MyCog(commands.Cog, name='My Cog'):
+      pass
+  ```
+</ParamField>
+
+<ParamField path="command_attrs" type="dict">
+  A dictionary of attributes to apply to every command inside this cog. The dictionary is passed into the `Command` (or its subclass) options at `__init__`. If you specify attributes inside the command attribute in the class, it will override the one specified inside this attribute.
+  
+  ```python
+  class MyCog(commands.Cog, command_attrs=dict(hidden=True)):
+      @commands.command()
+      async def foo(self, ctx):
+          pass  # hidden -> True
+
+      @commands.command(hidden=False)
+      async def bar(self, ctx):
+          pass  # hidden -> False
+  ```
+</ParamField>
+
+### Properties
+
+<ResponseField name="qualified_name" type="str">
+  Returns the cog's specified name, not the class name.
+</ResponseField>
+
+<ResponseField name="description" type="str">
+  Returns the cog's description, typically the cleaned docstring.
+</ResponseField>
+
+<ResponseField name="event_handlers" type="Dict[str, Awaitable]">
+  A dictionary of (name, function) event handler pairs that are defined in this cog.
+</ResponseField>
+
+## Methods
+
+### get_commands
+
+```python
+cog.get_commands()
+```
+
+Returns a list of `Command`s that are defined inside this cog.
+
+**Note:** This does not include subcommands.
+
+**Returns:** `List[Command]` - The commands in this cog.
+
+### walk_commands
+
+```python
+for command in cog.walk_commands():
+    ...
+```
+
+An iterator that recursively walks through this cog's commands and subcommands.
+
+---
+
+## Special Methods
+
+These are special methods that can be overridden in your cog to provide custom behavior.
+
+### cog_unload
+
+```python
+def cog_unload(self):
+    # Cleanup code here
+    pass
+```
+
+A special method that is called when the cog gets removed.
+
+This function **cannot** be a coroutine. It must be a regular function.
+
+### bot_check_once
+
+```python
+def bot_check_once(self, ctx: Context) -> bool:
+    return True
+```
+
+A special method that registers as a `Bot.check_once()` check.
+
+This function **can** be a coroutine and must take a sole parameter, `ctx`, to represent the `Context`.
+
+### bot_check
+
+```python
+def bot_check(self, ctx: Context) -> bool:
+    return True
+```
+
+A special method that registers as a `Bot.check()` check.
+
+This function **can** be a coroutine and must take a sole parameter, `ctx`, to represent the `Context`.
+
+### cog_check
+
+```python
+def cog_check(self, ctx: Context) -> bool:
+    return True
+```
+
+A special method that registers as a `@commands.check` for every command and subcommand in this cog.
+
+This function **can** be a coroutine and must take a sole parameter, `ctx`, to represent the `Context`.
+
+### cog_command_error
+
+```python
+async def cog_command_error(self, ctx: Context, error: Exception) -> Optional[bool]:
+    return False
+```
+
+A special method that is called whenever an error is dispatched inside this cog.
+
+This is similar to `event_command_error` except only applying to the commands inside this cog.
+
+Command error handlers are raised in a specific order. Returning `False` in any of them will invoke the next handler in the chain:
+
+1. The local command error handler is called (Handler specified by `Command.error`)
+2. The local cog command error handler is called (This method)
+3. All `event_command_error()` handlers are called simultaneously
+
+This **must** be a coroutine.
+
+**Parameters:**
+- `ctx` (Context): The invocation context where the error happened.
+- `error` (CommandError): The error that happened.
+
+### cog_before_invoke
+
+```python
+async def cog_before_invoke(self, ctx: Context):
+    pass
+```
+
+A special method that acts as a cog local pre-invoke hook.
+
+This is similar to `Command.before_invoke()`.
+
+This **must** be a coroutine.
+
+**Parameters:**
+- `ctx` (Context): The invocation context.
+
+### cog_after_invoke
+
+```python
+async def cog_after_invoke(self, ctx: Context):
+    pass
+```
+
+A special method that acts as a cog local post-invoke hook.
+
+This is similar to `Command.after_invoke()`.
+
+This **must** be a coroutine.
+
+**Parameters:**
+- `ctx` (Context): The invocation context.
+
+---
+
+## Decorator
+
+### @Cog.event
+
+```python
+@commands.Cog.event()
+async def event_friend_message(message):
+    await message.reply('Thanks for your message!')
+
+@commands.Cog.event('friend_message')
+async def my_message_handler(message):
+    await message.reply('Thanks for your message!')
+```
+
+A decorator to register an event within a cog.
+
+You can either:
+- Use `@Cog.event()` and have the function name match the event name (with or without the `event_` prefix)
+- Use `@Cog.event('event_name')` to explicitly specify the event name
+
+**Raises:**
+- `TypeError`: The decorated function is not a coroutine.
+- `TypeError`: Event is not specified as argument or function name with event prefix.
+
+---
+
+## Example
+
+```python
+class MyCog(commands.Cog):
+    """A simple cog example"""
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.command()
+    async def ping(self, ctx):
+        """Responds with pong!"""
+        await ctx.send('Pong!')
+
+    @commands.Cog.event()
+    async def event_friend_message(self, message):
+        print(f'Message from {message.author.display_name}: {message.content}')
+
+    def cog_unload(self):
+        print('Cog is being unloaded!')
+
+def extension_setup(bot):
+    bot.add_cog(MyCog(bot))
+```
