@@ -1,0 +1,191 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "rebootpy",
+  "projectDescription": "Asynchronous Python library for interacting with Fortnite and EpicGames' API and XMPP services",
+  "theme": "aspen",
+  "primaryColor": "#9146FF",
+  "lightColor": "#A66EFF",
+  "darkColor": "#7B2FE8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Authentication",
+            "pages": [
+              "auth/overview",
+              "auth/authorization-code",
+              "auth/device-auth",
+              "auth/device-code",
+              "auth/exchange-code",
+              "auth/advanced"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/client",
+              "concepts/events",
+              "concepts/friends",
+              "concepts/parties",
+              "concepts/presence",
+              "concepts/messages"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/basic-bot",
+              "guides/commands-extension",
+              "guides/party-management",
+              "guides/stats-tracking",
+              "guides/error-handling",
+              "guides/multiple-clients"
+            ]
+          },
+          {
+            "group": "Extensions",
+            "pages": [
+              "extensions/commands",
+              "extensions/cogs",
+              "extensions/context"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core",
+            "pages": [
+              "api/client",
+              "api/basic-client",
+              "api/user"
+            ]
+          },
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth",
+              "api/device-code-auth",
+              "api/authorization-code-auth",
+              "api/exchange-code-auth",
+              "api/device-auth",
+              "api/refresh-token-auth",
+              "api/advanced-auth"
+            ]
+          },
+          {
+            "group": "Social",
+            "pages": [
+              "api/friend",
+              "api/pending-friend",
+              "api/blocked-user",
+              "api/presence"
+            ]
+          },
+          {
+            "group": "Party",
+            "pages": [
+              "api/party",
+              "api/client-party",
+              "api/party-member",
+              "api/client-party-member",
+              "api/party-config",
+              "api/party-invitations"
+            ]
+          },
+          {
+            "group": "Messaging",
+            "pages": [
+              "api/friend-message",
+              "api/party-message"
+            ]
+          },
+          {
+            "group": "Stats & Data",
+            "pages": [
+              "api/stats",
+              "api/competitive-rank",
+              "api/store",
+              "api/creative-island",
+              "api/news",
+              "api/playlist"
+            ]
+          },
+          {
+            "group": "Enums",
+            "pages": [
+              "api/enums"
+            ]
+          },
+          {
+            "group": "Exceptions",
+            "pages": [
+              "api/errors"
+            ]
+          },
+          {
+            "group": "Commands Extension",
+            "pages": [
+              "api/ext/bot",
+              "api/ext/command",
+              "api/ext/cog",
+              "api/ext/context",
+              "api/ext/converters",
+              "api/ext/errors"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Full support for Epic Games friends system with XMPP events",
+    "Comprehensive party management and invitations",
+    "Battle Royale stats and competitive rank tracking",
+    "Multiple authentication methods including device auth",
+    "Commands framework extension similar to discord.py",
+    "Async/await support with aiohttp",
+    "Friend and party messaging capabilities",
+    "Creative islands, store items, and news integration"
+  ],
+  "publicApiSurface": [
+    "Client",
+    "BasicClient",
+    "Bot (commands extension)",
+    "AuthorizationCodeAuth",
+    "DeviceAuth",
+    "DeviceCodeAuth",
+    "ExchangeCodeAuth",
+    "AdvancedAuth",
+    "Friend",
+    "IncomingPendingFriend",
+    "OutgoingPendingFriend",
+    "Party",
+    "ClientParty",
+    "PartyMember",
+    "ClientPartyMember",
+    "FriendMessage",
+    "PartyMessage",
+    "StatsV2",
+    "CompetitiveRank",
+    "Presence",
+    "User",
+    "ClientUser",
+    "Store",
+    "CreativeIsland",
+    "BattleRoyaleNewsPost",
+    "Playlist"
+  ]
+}
